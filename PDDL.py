@@ -158,11 +158,8 @@ class PDDL_Parser:
                 pos.append(proposition)
 
     def print_summary(self):
-        # print('----------------------------')
-        # pprint.pprint(parser.scan_tokens(domain))
-        # print('----------------------------')
-        # pprint.pprint(parser.scan_tokens(problem))
-        # print('----------------------------')
+        self.scan_tokens(domain)
+        self.can_tokens(problem)
         print('Domain name:' + self.domain_name)
         print('Predicates: ' + str(self.predicates))
         for act in self.actions:
@@ -185,13 +182,15 @@ class CodeGenerator:
         self.parser = parser
         self.code_generator = []
         self.indentation_depth = 4
+        self.agent_name = 'action'
+        self.variable_map = {}
 
     def add_line(self, depth, line):
-        tabs = ' ' * (depth * 4)
+        tabs = ' ' * (depth * self.indentation_depth)
         self.code_generator.append(tabs + line)
 
     def add_agent(self):
-        self.add_line(0, 'Agent action')
+        self.add_line(0, 'Agent ' + self.agent_name)
         self.add_vars()
         self.add_actions()
         self.add_protocol()
@@ -205,17 +204,20 @@ class CodeGenerator:
         predicates = self.parser.predicates
         objects = self.parser.objects
         variables = []
-
         for p in predicates:
             num_arguments = len(p) - 1
             combinations = list(itertools.combinations(objects, num_arguments))
             joined = [p[0] + '_' + '_'.join(comb) for comb in combinations]
             for j in joined:
+                self.variable_map[j] = False
                 self.add_line(2, j + ' : ' + var_type + ';')
-
+            
         self.add_line(1, 'end Vars')
     
     def add_actions(self):
+        self.add_line(1, 'Actions = {')
+        # self.add_line(2, ...) 
+        self.add_line(1, '};')
         pass # TODO
 
     def add_protocol(self):
@@ -228,6 +230,17 @@ class CodeGenerator:
         pass # TODO
 
     def add_init_states(self):
+        self.add_line(0, 'InitStates')
+        init_states = []
+        for s in parser.state:
+            variable = '_'.join(s)
+            self.variable_map[variable] = True
+        for variable in self.variable_map:
+            truth_strings = ['false', 'true']
+            truth = truth_strings[self.variable_map[variable]]
+            init_states.append(self.agent_name + '.' + variable + '=' + truth)
+        self.add_line(1,' and\n    '.join(init_states))
+        self.add_line(0, 'end InitStates')
         pass # TODO
 
     def add_groups(self):
