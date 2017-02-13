@@ -2,6 +2,7 @@
 # Four spaces as indentation [no tabs]
 
 import re
+import itertools
 from action import Action
 
 class PDDL_Parser:
@@ -102,7 +103,8 @@ class PDDL_Parser:
                 raise Exception(str(t) + 'is not recognized as a valid predicate.')
             self.predicates.append(t)
 
-
+    def get_predicates(self):
+        return self.predicates
     #-----------------------------------------------
     # Parse problem
     #-----------------------------------------------
@@ -135,6 +137,7 @@ class PDDL_Parser:
                     self.split_propositions(group[1], self.positive_goals, self.negative_goals, '', 'goals')
                 else: print(str(t) + ' is not recognized in problem')
 
+    
     #-----------------------------------------------
     # Split propositions
     #-----------------------------------------------
@@ -154,6 +157,103 @@ class PDDL_Parser:
             else:
                 pos.append(proposition)
 
+    def print_summary(self):
+        # print('----------------------------')
+        # pprint.pprint(parser.scan_tokens(domain))
+        # print('----------------------------')
+        # pprint.pprint(parser.scan_tokens(problem))
+        # print('----------------------------')
+        print('Domain name:' + self.domain_name)
+        print('Predicates: ' + str(self.predicates))
+        for act in self.actions:
+            print(act)
+        print('----------------------------')
+        print('Problem name: ' + self.problem_name)
+        print('Objects: ' + str(self.objects))
+        print('State: ' + str(self.state))
+        print('Positive goals: ' + str(self.positive_goals))
+        print('Negative goals: ' + str(self.negative_goals))
+        
+    def parse(self):
+        self.parse_domain(domain)
+        self.parse_problem(problem)
+
+
+class CodeGenerator:
+    
+    def __init__(self, parser):
+        self.parser = parser
+        self.code_generator = []
+        self.indentation_depth = 4
+
+    def add_line(self, depth, line):
+        tabs = ' ' * (depth * 4)
+        self.code_generator.append(tabs + line)
+
+    def add_agent(self):
+        self.add_line(0, 'Agent action')
+        self.add_vars()
+        self.add_actions()
+        self.add_protocol()
+        self.add_evolution()
+        self.add_line(0, 'End Agent')
+
+
+    def add_vars(self):
+        self.add_line(1, 'Vars:')
+        var_type = 'boolean'
+        predicates = self.parser.predicates
+        objects = self.parser.objects
+        variables = []
+
+        for p in predicates:
+            num_arguments = len(p) - 1
+            combinations = list(itertools.combinations(objects, num_arguments))
+            joined = [p[0] + '_' + '_'.join(comb) for comb in combinations]
+            for j in joined:
+                self.add_line(2, j + ' : ' + var_type + ';')
+
+        self.add_line(1, 'end Vars')
+    
+    def add_actions(self):
+        pass # TODO
+
+    def add_protocol(self):
+        pass # TODO
+
+    def add_evolution(self):
+        pass # TODO
+
+    def add_evaluation(self):
+        pass # TODO
+
+    def add_init_states(self):
+        pass # TODO
+
+    def add_groups(self):
+        pass # TODO
+
+    def add_fairness(self):
+        pass # TODO
+
+    def add_formulae(self):
+        pass # TODO
+
+    def generate(self):
+        self.add_agent()
+        self.add_evaluation()
+        self.add_init_states()
+        self.add_groups()
+        self.add_fairness()
+        self.add_formulae()
+    
+    def print_code(self):
+        self.generate()
+        for line in self.code_generator:
+            print(line)
+
+
+
 # ==========================================
 # Main
 # ==========================================
@@ -163,20 +263,6 @@ if __name__ == '__main__':
     domain = sys.argv[1]
     problem = sys.argv[2]
     parser = PDDL_Parser()
-    print('----------------------------')
-    pprint.pprint(parser.scan_tokens(domain))
-    print('----------------------------')
-    pprint.pprint(parser.scan_tokens(problem))
-    print('----------------------------')
-    parser.parse_domain(domain)
-    parser.parse_problem(problem)
-    print('Domain name:' + parser.domain_name)
-    print('Predicates: ' + str(parser.predicates))
-    for act in parser.actions:
-        print(act)
-    print('----------------------------')
-    print('Problem name: ' + parser.problem_name)
-    print('Objects: ' + str(parser.objects))
-    print('State: ' + str(parser.state))
-    print('Positive goals: ' + str(parser.positive_goals))
-    print('Negative goals: ' + str(parser.negative_goals))
+    parser.parse()
+    code_generator = CodeGenerator(parser)
+    code_generator.print_code()
