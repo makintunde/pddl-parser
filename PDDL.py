@@ -3,6 +3,7 @@
 
 import re
 import itertools
+import collections
 from action import Action
 
 class PDDL_Parser:
@@ -101,7 +102,8 @@ class PDDL_Parser:
             t = group.pop(0)
             if not type(t) is list:
                 raise Exception(str(t) + 'is not recognized as a valid predicate.')
-            self.predicates.append(t)
+            without_dash = [c.replace('-','') for c in t]
+            self.predicates.append(without_dash)
 
     def get_predicates(self):
         return self.predicates
@@ -184,6 +186,8 @@ class CodeGenerator:
         self.indentation_depth = 4
         self.agent_name = 'action'
         self.variable_map = {}
+        self.effects = {}
+        self.combinations = {}
 
     def add_line(self, depth, line):
         tabs = ' ' * (depth * self.indentation_depth)
@@ -192,11 +196,17 @@ class CodeGenerator:
     def add_agent(self):
         self.add_line(0, 'Agent ' + self.agent_name)
         self.add_vars()
+        self.add_redstates()
+        self.prepare_actions()
         self.add_actions()
         self.add_protocol()
         self.add_evolution()
-        self.add_line(0, 'End Agent')
+        self.add_line(0, 'end Agent')
 
+    def initialise_variable_map(self):
+        for s in parser.state:
+            variable = '_'.join(s).replace('-','')
+            self.variable_map[variable] = True
 
     def add_vars(self):
         self.add_line(1, 'Vars:')
@@ -206,34 +216,89 @@ class CodeGenerator:
         variables = []
         for p in predicates:
             num_arguments = len(p) - 1
-            combinations = list(itertools.combinations(objects, num_arguments))
+            combinations = list(itertools.permutations(objects, num_arguments))
             joined = [p[0] + '_' + '_'.join(comb) for comb in combinations]
             for j in joined:
-                self.variable_map[j] = False
+                if j not in self.variable_map.keys():
+                    self.variable_map[j.replace('-','')] = False
                 self.add_line(2, j + ' : ' + var_type + ';')
             
         self.add_line(1, 'end Vars')
     
+    def add_redstates(self):
+        self.add_line(1, 'RedStates:')
+        self.add_line(1, 'end RedStates')
+
+
+    def prepare_actions(self):
+        for action in parser.actions:
+            combinations = itertools.permutations(parser.objects, len(action.parameters))
+            predicates = []
+            # TODO: negative_preconditions
+            param_map = { action : i for i, action in enumerate(action.parameters) }
+           
+            true_combinations = []
+            for i, comb in enumerate(combinations):
+                candidates = []
+                negatives = []
+                positives = []
+                for precondition in action.positive_preconditions:
+                    predicate = precondition[0].replace('-','')
+                    arguments = [comb[param_map[p]] for p in precondition[1:]]
+                    candidate = '_'.join([predicate] + arguments)
+                    candidates.append(candidate)
+
+                for positive in action.add_effects:
+                    predicate = positive[0].replace('-','')
+                    arguments = [comb[param_map[p]] for p in positive[1:]]
+                    candidate = '_'.join([predicate] + arguments)
+                    positives.append(candidate + '=true')
+
+                for negative in action.del_effects:
+                    predicate = negative[0].replace('-','')
+                    arguments = [comb[param_map[p]] for p in negative[1:]]
+                    candidate = '_'.join([predicate] + arguments)
+                    negatives.append(candidate + '=false')
+
+                next_combination = ' and '.join(candidate + '=true' for candidate in candidates)
+                next_effect = ' and '.join(positives + negatives)
+                
+                action_name = action.name + str(i)
+
+                # To be used for Evolution.
+                self.effects[action_name] = next_effect
+                self.combinations[action_name] = next_combination
+
     def add_actions(self):
         self.add_line(1, 'Actions = {')
-        # self.add_line(2, ...) 
+        self.add_line(2, ', '.join(action for action, _ in self.effects.items()))
+    def add_actions(self):
+        self.add_line(1, 'Actions = {')
+        self.add_line(2, ', '.join(action for action, _ in self.effects.items()))
         self.add_line(1, '};')
-        pass # TODO
 
     def add_protocol(self):
-        pass # TODO
+        self.add_line(1, 'Protocol:')
+        for action_name, next_combination in self.combinations.items():
+            next_str = next_combination + ' : { ' + action_name + ' };'
+            self.add_line(2, next_str)
+        self.add_line(1, 'end Protocol')
 
     def add_evolution(self):
-        pass # TODO
+        self.add_line(1, 'Evolution:')
+        for action, effect in self.effects.items():
+            next_line = effect + ' if Action=' + action + ';'
+            self.add_line(2, next_line)
+        self.add_line(1, 'end Evolution')
 
     def add_evaluation(self):
         self.add_line(0, 'Evaluation')
 
         goals = []
-        positive_goals = ['_'.join(goal) + '=true' for goal in parser.positive_goals]
+        positive_goals = ['action.' + '_'.join(goal) + '=true' for goal in parser.positive_goals]
         positive_goal_spec = ' and '.join(positive_goals)
         
-        negative_goals = ['_'.join(goal) + '=true' for goal in parser.negative_goals]
+        negative_goals = ['action.' + '_'.join(goal) + '=true' for goal in parser.negative_goals]
         negative_goal_spec = ''
         negative_goal_spec = 'not ( ' + ' and '.join(negative_goals) + ' )' 
         
@@ -244,54 +309,47 @@ class CodeGenerator:
 
         goal_spec = ' and '.join(goals)
 
-        self.add_line(1, 'goal if ' + goal_spec)
+        self.add_line(1, 'goal if ' + goal_spec + ';')
         self.add_line(0, 'end Evaluation')
 
     def add_init_states(self):
         self.add_line(0, 'InitStates')
         init_states = []
-        for s in parser.state:
-            variable = '_'.join(s)
-            self.variable_map[variable] = True
         for variable in self.variable_map:
             truth_strings = ['false', 'true']
             truth = truth_strings[self.variable_map[variable]]
             init_states.append(self.agent_name + '.' + variable + '=' + truth)
-        self.add_line(1,' and\n    '.join(init_states))
+        self.add_line(1,' and\n    '.join(init_states) + ';')
         self.add_line(0, 'end InitStates')
-        pass # TODO
 
     def add_groups(self):
         self.add_line(0, 'Groups')
         self.add_line(1, 'g1 = { ' + self.agent_name + ' };')
         self.add_line(0, 'end Groups')
-        pass # TODO
 
     def add_fairness(self):
         self.add_line(0, 'Fairness')
         self.add_line(0, 'end Fairness')
-        pass # TODO
 
     def add_formulae(self):
         self.add_line(0, 'Formulae')
         self.add_line(1, '<g1>F goal;')
         self.add_line(0, 'end Formulae')
-        pass # TODO
 
     def generate(self):
+        self.initialise_variable_map()
         self.add_agent()
         self.add_evaluation()
         self.add_init_states()
         self.add_groups()
         self.add_fairness()
         self.add_formulae()
+        # TODO
     
     def print_code(self):
         self.generate()
         for line in self.code_generator:
             print(line)
-
-
 
 # ==========================================
 # Main
