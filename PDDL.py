@@ -159,7 +159,7 @@ class PDDL_Parser:
 
     def print_summary(self):
         self.scan_tokens(domain)
-        self.can_tokens(problem)
+        self.scan_tokens(problem)
         print('Domain name:' + self.domain_name)
         print('Predicates: ' + str(self.predicates))
         for act in self.actions:
@@ -227,7 +227,25 @@ class CodeGenerator:
         pass # TODO
 
     def add_evaluation(self):
-        pass # TODO
+        self.add_line(0, 'Evaluation')
+
+        goals = []
+        positive_goals = ['_'.join(goal) + '=true' for goal in parser.positive_goals]
+        positive_goal_spec = ' and '.join(positive_goals)
+        
+        negative_goals = ['_'.join(goal) + '=true' for goal in parser.negative_goals]
+        negative_goal_spec = ''
+        negative_goal_spec = 'not ( ' + ' and '.join(negative_goals) + ' )' 
+        
+        if positive_goals:
+            goals.append(positive_goal_spec)
+        if negative_goals:
+            goals.append(negative_goal_spec)
+
+        goal_spec = ' and '.join(goals)
+
+        self.add_line(1, 'goal if ' + goal_spec)
+        self.add_line(0, 'end Evaluation')
 
     def add_init_states(self):
         self.add_line(0, 'InitStates')
@@ -244,12 +262,20 @@ class CodeGenerator:
         pass # TODO
 
     def add_groups(self):
+        self.add_line(0, 'Groups')
+        self.add_line(1, 'g1 = { ' + self.agent_name + ' };')
+        self.add_line(0, 'end Groups')
         pass # TODO
 
     def add_fairness(self):
+        self.add_line(0, 'Fairness')
+        self.add_line(0, 'end Fairness')
         pass # TODO
 
     def add_formulae(self):
+        self.add_line(0, 'Formulae')
+        self.add_line(1, '<g1>F goal;')
+        self.add_line(0, 'end Formulae')
         pass # TODO
 
     def generate(self):
