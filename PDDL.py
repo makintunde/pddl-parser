@@ -45,6 +45,7 @@ class PDDL_Parser:
         if type(tokens) is list and tokens.pop(0) == 'define':
             self.domain_name = 'unknown'
             self.actions = []
+            self.predicates = []
             while tokens:
                 group = tokens.pop(0)
                 t = group.pop(0)
@@ -53,7 +54,7 @@ class PDDL_Parser:
                 elif t == ':requirements':
                     pass # TODO
                 elif t == ':predicates':
-                    pass # TODO
+                    self.parse_predicates(group)
                 elif t == ':types':
                     pass # TODO
                 elif t == ':action':
@@ -90,6 +91,17 @@ class PDDL_Parser:
                 self.split_propositions(group.pop(0), add_effects, del_effects, name, ' effects')
             else: print(str(t) + ' is not recognized in action')
         self.actions.append(Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects))
+
+    #-----------------------------------------------
+    # Parse predicates
+    #-----------------------------------------------
+    def parse_predicates(self, group):
+        while group:
+            t = group.pop(0)
+            if not type(t) is list:
+                raise Exception(str(t) + 'is not recognized as a valid predicate.')
+            self.predicates.append(t)
+
 
     #-----------------------------------------------
     # Parse problem
@@ -159,6 +171,7 @@ if __name__ == '__main__':
     parser.parse_domain(domain)
     parser.parse_problem(problem)
     print('Domain name:' + parser.domain_name)
+    print('Predicates: ' + str(parser.predicates))
     for act in parser.actions:
         print(act)
     print('----------------------------')
