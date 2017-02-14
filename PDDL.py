@@ -3,7 +3,6 @@
 
 from code_generator import CodeGenerator
 from pddl_parser import PDDL_Parser
-from action import Action
 
 # ==========================================
 # Main

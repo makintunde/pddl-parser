@@ -91,10 +91,7 @@ class CodeGenerator:
                 # To be used for Evolution.
                 self.effects[action_name] = next_effect
                 self.combinations[action_name] = next_combination
-
-    def add_actions(self):
-        self.add_line(1, 'Actions = {')
-        self.add_line(2, ', '.join(action for action, _ in self.effects.items()))
+    
     def add_actions(self):
         self.add_line(1, 'Actions = {')
         self.add_line(2, ', '.join(action for action, _ in self.effects.items()))
