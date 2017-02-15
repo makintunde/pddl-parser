@@ -118,7 +118,7 @@ class CodeGenerator:
         positive_goals = ['action.' + '_'.join(goal) + '=true' for goal in self.parser.positive_goals]
         positive_goal_spec = ' and '.join(positive_goals)
         
-        negative_goals = ['action.' + '_'.join(goal) + '=true' for goal in self.parser.negative_goals]
+        negative_goals = ['action.' + '_'.join(goal) + '=false' for goal in self.parser.negative_goals]
         negative_goal_spec = ''
         negative_goal_spec = 'not ( ' + ' and '.join(negative_goals) + ' )' 
         
