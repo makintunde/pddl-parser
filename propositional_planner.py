@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Four spaces as indentation [no tabs]
 
-from PDDL import PDDL_Parser
+from PDDL import PddlParser
 
 class Propositional_Planner:
 
@@ -11,7 +11,7 @@ class Propositional_Planner:
 
     def solve(self, domain, problem):
         # Parser
-        parser = PDDL_Parser()
+        parser = PddlParser()
         parser.parse_domain(domain)
         parser.parse_problem(problem)
         # Parsed data

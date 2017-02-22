@@ -1,5 +1,5 @@
 import itertools
-import collections
+
 
 class CodeGenerator:
     
@@ -28,7 +28,7 @@ class CodeGenerator:
 
     def initialise_variable_map(self):
         for s in self.parser.state:
-            variable = '_'.join(s).replace('-','')
+            variable = '_'.join(s).replace('-', '')
             self.variable_map[variable] = True
 
     def add_vars(self):
@@ -36,14 +36,13 @@ class CodeGenerator:
         var_type = 'boolean'
         predicates = self.parser.predicates
         objects = self.parser.objects
-        variables = []
         for p in predicates:
             num_arguments = len(p) - 1
             combinations = list(itertools.permutations(objects, num_arguments))
             joined = [p[0] + '_' + '_'.join(comb) for comb in combinations]
             for j in joined:
                 if j not in self.variable_map.keys():
-                    self.variable_map[j.replace('-','')] = False
+                    self.variable_map[j.replace('-', '')] = False
                 self.add_line(2, j + ' : ' + var_type + ';')
             
         self.add_line(1, 'end Vars')
@@ -52,33 +51,30 @@ class CodeGenerator:
         self.add_line(1, 'RedStates:')
         self.add_line(1, 'end RedStates')
 
-
     def prepare_actions(self):
         for action in self.parser.actions:
             combinations = itertools.permutations(self.parser.objects, len(action.parameters))
-            predicates = []
             # TODO: negative_preconditions
-            param_map = { action : i for i, action in enumerate(action.parameters) }
+            param_map = {action: i for i, action in enumerate(action.parameters)}
            
-            true_combinations = []
             for i, comb in enumerate(combinations):
                 candidates = []
                 negatives = []
                 positives = []
                 for precondition in action.positive_preconditions:
-                    predicate = precondition[0].replace('-','')
+                    predicate = precondition[0].replace('-', '')
                     arguments = [comb[param_map[p]] for p in precondition[1:]]
                     candidate = '_'.join([predicate] + arguments)
                     candidates.append(candidate)
 
                 for positive in action.add_effects:
-                    predicate = positive[0].replace('-','')
+                    predicate = positive[0].replace('-', '')
                     arguments = [comb[param_map[p]] for p in positive[1:]]
                     candidate = '_'.join([predicate] + arguments)
                     positives.append(candidate + '=true')
 
                 for negative in action.del_effects:
-                    predicate = negative[0].replace('-','')
+                    predicate = negative[0].replace('-', '')
                     arguments = [comb[param_map[p]] for p in negative[1:]]
                     candidate = '_'.join([predicate] + arguments)
                     negatives.append(candidate + '=false')
@@ -119,8 +115,7 @@ class CodeGenerator:
         positive_goal_spec = ' and '.join(positive_goals)
         
         negative_goals = ['action.' + '_'.join(goal) + '=false' for goal in self.parser.negative_goals]
-        negative_goal_spec = ''
-        negative_goal_spec = 'not ( ' + ' and '.join(negative_goals) + ' )' 
+        negative_goal_spec = 'not ( ' + ' and '.join(negative_goals) + ' )'
         
         if positive_goals:
             goals.append(positive_goal_spec)
@@ -139,7 +134,7 @@ class CodeGenerator:
             truth_strings = ['false', 'true']
             truth = truth_strings[self.variable_map[variable]]
             init_states.append(self.agent_name + '.' + variable + '=' + truth)
-        self.add_line(1,' and\n    '.join(init_states) + ';')
+        self.add_line(1, ' and\n    '.join(init_states) + ';')
         self.add_line(0, 'end InitStates')
 
     def add_groups(self):

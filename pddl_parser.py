@@ -1,16 +1,16 @@
 import re
 from action import Action
 
-class PDDL_Parser:
+
+class PddlParser:
 
     def __init__(self, domain, problem):
         self.domain = domain
         self.problem = problem
-
-
-    # ------------------------------------------
-    # Tokens
-    # ------------------------------------------
+        self.actions = []
+        self.predicates = []
+        self.positive_goals = []
+        self.negative_goals = []
 
     def scan_tokens(self, filename):
         with open(filename,'r') as f:
@@ -38,16 +38,11 @@ class PDDL_Parser:
             raise Exception('Malformed expression')
         return list[0]
 
-    #-----------------------------------------------
-    # Parse domain
-    #-----------------------------------------------
-
     def parse_domain(self, domain_filename):
         tokens = self.scan_tokens(domain_filename)
         if type(tokens) is list and tokens.pop(0) == 'define':
             self.domain_name = 'unknown'
-            self.actions = []
-            self.predicates = []
+
             while tokens:
                 group = tokens.pop(0)
                 t = group.pop(0)
@@ -64,10 +59,6 @@ class PDDL_Parser:
                 else: print(str(t) + ' is not recognized in domain')
         else:
             raise 'File ' + domain_filename + ' does not match domain pattern'
-
-    #-----------------------------------------------
-    # Parse action
-    #-----------------------------------------------
 
     def parse_action(self, group):
         name = group.pop(0)
@@ -94,9 +85,6 @@ class PDDL_Parser:
             else: print(str(t) + ' is not recognized in action')
         self.actions.append(Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects))
 
-    #-----------------------------------------------
-    # Parse predicates
-    #-----------------------------------------------
     def parse_predicates(self, group):
         while group:
             t = group.pop(0)
@@ -107,9 +95,6 @@ class PDDL_Parser:
 
     def get_predicates(self):
         return self.predicates
-    #-----------------------------------------------
-    # Parse problem
-    #-----------------------------------------------
 
     def parse_problem(self, problem_filename):
         tokens = self.scan_tokens(problem_filename)
@@ -117,12 +102,11 @@ class PDDL_Parser:
             self.problem_name = 'unknown'
             self.objects = []
             self.state = []
-            self.positive_goals = []
-            self.negative_goals = []
+
             while tokens:
                 group = tokens.pop(0)
                 t = group[0]
-                if   t == 'problem':
+                if t == 'problem':
                     self.problem_name = group[-1]
                 elif t == ':domain':
                     if self.domain_name != group[-1]:
@@ -137,12 +121,8 @@ class PDDL_Parser:
                     self.state = group
                 elif t == ':goal':
                     self.split_propositions(group[1], self.positive_goals, self.negative_goals, '', 'goals')
-                else: print(str(t) + ' is not recognized in problem')
-
-    
-    #-----------------------------------------------
-    # Split propositions
-    #-----------------------------------------------
+                else:
+                    print(str(t) + ' is not recognized in problem')
 
     def split_propositions(self, group, pos, neg, name, part):
         if not type(group) is list:

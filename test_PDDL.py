@@ -3,7 +3,7 @@
 
 import unittest
 from action import Action
-from PDDL import PDDL_Parser
+from PDDL import PddlParser
 
 # ==========================================
 # Test PDDL
@@ -16,7 +16,7 @@ class Test_PDDL(unittest.TestCase):
     # ------------------------------------------
 
     def test_scan_tokens_domain(self):
-        parser = PDDL_Parser()
+        parser = PddlParser()
         self.assertEqual(parser.scan_tokens('dinner/dinner.pddl'),
             ['define', ['domain', 'dinner'],
             [':requirements', ':strips'],
@@ -40,7 +40,7 @@ class Test_PDDL(unittest.TestCase):
         )
 
     def test_scan_tokens_problem(self):
-        parser = PDDL_Parser()
+        parser = PddlParser()
         self.assertEqual(parser.scan_tokens('dinner/pb1.pddl'),
             ['define', ['problem', 'pb1'],
             [':domain', 'dinner'],
@@ -53,7 +53,7 @@ class Test_PDDL(unittest.TestCase):
     # ------------------------------------------
 
     def test_parse_domain(self):
-        parser = PDDL_Parser()
+        parser = PddlParser()
         parser.parse_domain('dinner/dinner.pddl')
         self.assertEqual(parser.domain_name, 'dinner')
         self.assertEqual(parser.actions,
@@ -70,7 +70,7 @@ class Test_PDDL(unittest.TestCase):
     # ------------------------------------------
 
     def test_parse_problem(self):
-        parser = PDDL_Parser()
+        parser = PddlParser()
         parser.parse_domain('dinner/dinner.pddl')
         parser.parse_problem('dinner/pb1.pddl')
         self.assertEqual(parser.problem_name, 'pb1')
