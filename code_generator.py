@@ -62,21 +62,15 @@ class CodeGenerator:
                 negatives = []
                 positives = []
                 for precondition in action.positive_preconditions:
-                    predicate = precondition[0].replace('-', '')
-                    arguments = [comb[param_map[p]] for p in precondition[1:]]
-                    candidate = '_'.join([predicate] + arguments)
+                    candidate = self.get_candidate(comb, param_map, precondition)
                     candidates.append(candidate)
 
                 for positive in action.add_effects:
-                    predicate = positive[0].replace('-', '')
-                    arguments = [comb[param_map[p]] for p in positive[1:]]
-                    candidate = '_'.join([predicate] + arguments)
+                    candidate = self.get_candidate(comb, param_map, positive)
                     positives.append(candidate + '=true')
 
                 for negative in action.del_effects:
-                    predicate = negative[0].replace('-', '')
-                    arguments = [comb[param_map[p]] for p in negative[1:]]
-                    candidate = '_'.join([predicate] + arguments)
+                    candidate = self.get_candidate(comb, param_map, negative)
                     negatives.append(candidate + '=false')
 
                 next_combination = ' and '.join(candidate + '=true' for candidate in candidates)
@@ -87,7 +81,14 @@ class CodeGenerator:
                 # To be used for Evolution.
                 self.effects[action_name] = next_effect
                 self.combinations[action_name] = next_combination
-    
+
+    @staticmethod
+    def get_candidate(comb, param_map, precondition):
+        predicate = precondition[0].replace('-', '')
+        arguments = [comb[param_map[p]] for p in precondition[1:]]
+        candidate = '_'.join([predicate] + arguments)
+        return candidate
+
     def add_actions(self):
         self.add_line(1, 'Actions = {')
         self.add_line(2, ', '.join(action for action, _ in self.effects.items()))
