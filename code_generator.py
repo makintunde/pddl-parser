@@ -1,3 +1,4 @@
+import collections
 import itertools
 
 
@@ -41,6 +42,8 @@ class CodeGenerator:
             combinations = list(itertools.permutations(objects, num_arguments))
             joined = [p[0] + '_' + '_'.join(comb) for comb in combinations]
             for j in joined:
+                if j[-1] == '_': # trim
+                    j = j[:-1]
                 if j not in self.variable_map.keys():
                     self.variable_map[j.replace('-', '')] = False
                 self.add_line(2, j + ' : ' + var_type + ';')
@@ -54,13 +57,13 @@ class CodeGenerator:
     def prepare_actions(self):
         for action in self.parser.actions:
             combinations = itertools.permutations(self.parser.objects, len(action.parameters))
-            # TODO: negative_preconditions
             param_map = {action: i for i, action in enumerate(action.parameters)}
            
             for i, comb in enumerate(combinations):
                 candidates = []
                 negatives = []
                 positives = []
+
                 for precondition in action.positive_preconditions:
                     candidate = self.get_candidate(comb, param_map, precondition)
                     candidates.append(candidate)
@@ -95,9 +98,14 @@ class CodeGenerator:
         self.add_line(1, '};')
 
     def add_protocol(self):
-        self.add_line(1, 'Protocol:')
+        next_actions = collections.defaultdict(set)
+
         for action_name, next_combination in self.combinations.items():
-            next_str = next_combination + ' : { ' + action_name + ' };'
+            next_actions[next_combination].add(action_name)
+
+        self.add_line(1, 'Protocol:')
+        for precondition, actions in next_actions.items():
+            next_str = precondition + ' : { ' + ', '.join(actions) + ' };'
             self.add_line(2, next_str)
         self.add_line(1, 'end Protocol')
 
@@ -116,8 +124,8 @@ class CodeGenerator:
         positive_goal_spec = ' and '.join(positive_goals)
         
         negative_goals = ['action.' + '_'.join(goal) + '=false' for goal in self.parser.negative_goals]
-        negative_goal_spec = 'not ( ' + ' and '.join(negative_goals) + ' )'
-        
+        negative_goal_spec = ' and '.join(negative_goals) 
+
         if positive_goals:
             goals.append(positive_goal_spec)
         if negative_goals:
