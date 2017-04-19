@@ -79,7 +79,7 @@ class CodeGenerator:
                 next_combination = ' and '.join(candidate + '=true' for candidate in candidates)
                 next_effect = ' and '.join(positives + negatives)
                 
-                action_name = action.name + str(i)
+                action_name = '_'.join((action.name,) + comb)
 
                 # To be used for Evolution.
                 self.effects[action_name] = next_effect
