@@ -8,7 +8,7 @@ class CodeGenerator:
         self.parser = parser
         self.code_generator = []
         self.indentation_depth = 4
-        self.action_performing_agent = 'Performer'
+        self.action_performing_agents = ['Performer']
         self.environment = 'Environment'
         self.variable_map = {}
         self.effects = {}
@@ -24,16 +24,16 @@ class CodeGenerator:
         self.add_red_states()
         self.add_actions(empty=True)
         self.add_protocol(empty=True)
-        self.add_evolution()
+        self.add_evolution(self.action_performing_agents)
         self.add_line(0, 'end Agent')
 
-    def add_action_performing_agent(self):
-        self.add_line(0, 'Agent ' + self.action_performing_agent)
+    def add_action_performing_agent(self, agent_name):
+        self.add_line(0, 'Agent ' + agent_name)
         self.add_vars(empty=True)
         self.prepare_actions()
         self.add_actions()
         self.add_protocol()
-        self.add_evolution(empty=True)
+        self.add_evolution(agent_name, empty=True)
         self.add_line(0, 'end Agent')
 
     def initialise_variable_map(self):
@@ -132,13 +132,16 @@ class CodeGenerator:
 
         self.add_line(1, 'end Protocol')
 
-    def add_evolution(self, empty=None):
+    def add_evolution(self, agents, empty=None):
         self.add_line(1, 'Evolution:')
         if empty is None:
             for action, effect in self.effects.items():
-                next_line = effect + ' if ' + self.action_performing_agent + '.Action=' + action + ';'
-                self.add_line(2, next_line)
+                # Add effects for action-performing agent.
+                for agent in agents:
+                    next_line = effect + ' if ' + agent + '.Action=' + action + ';'
+                    self.add_line(2, next_line)
         else:
+            # Empty evolution.
             self.add_line(2, 'state=empty if state=empty;')
         self.add_line(1, 'end Evolution')
 
@@ -190,10 +193,13 @@ class CodeGenerator:
         self.initialise_variable_map()
         self.prepare_actions()
         self.add_environment_agent()
-        self.add_action_performing_agent()
+
+        for agent in self.action_performing_agents:
+            self.add_action_performing_agent(agent)
+
         self.add_evaluation(self.environment)
         self.add_init_states(self.environment)
-        self.add_groups([self.action_performing_agent])
+        self.add_groups(self.action_performing_agents)
         self.add_fairness()
         self.add_formulae()
     
