@@ -107,10 +107,7 @@ class CodeGenerator:
 
     def add_actions(self, empty=None):
         self.add_line(1, 'Actions = {')
-        if empty is None:
-            self.add_line(2, ', '.join(action for action, _ in self.effects.items()))
-        else:
-            self.add_line(2, 'none')
+        self.add_line(2, ', '.join(action.replace('-', '_') for action, _ in self.effects.items()) if empty is None else 'none')
         self.add_line(1, '};')
 
     def add_protocol(self, empty=None):
@@ -124,7 +121,7 @@ class CodeGenerator:
         next_actions = collections.defaultdict(set)
 
         for action_name, next_combination in self.combinations.items():
-            next_actions[next_combination].add(action_name)
+            next_actions[next_combination].add(action_name.replace('-', '_'))
 
         for precondition, actions in next_actions.items():
             next_str = precondition + ' : { ' + ', '.join(actions) + ' };'
@@ -138,7 +135,7 @@ class CodeGenerator:
             for action, effect in self.effects.items():
                 # Add effects for action-performing agent.
                 for agent in agents:
-                    next_line = effect + ' if ' + agent + '.Action=' + action + ';'
+                    next_line = effect + ' if ' + agent + '.Action=' + action.replace('-', '_') + ';'
                     self.add_line(2, next_line)
         else:
             # Empty evolution.
