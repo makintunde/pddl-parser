@@ -38,7 +38,7 @@ class CodeGenerator:
 
     def initialise_variable_map(self):
         for s in self.parser.state:
-            variable = '_'.join(s).replace('-', '')
+            variable = '_'.join(s).replace('-', '_')
             self.variable_map[variable] = True
 
     def add_vars(self, obs=None, empty=None):
@@ -55,10 +55,10 @@ class CodeGenerator:
             combinations = list(itertools.permutations(objects, num_arguments))
             joined = [p[0] + '_' + '_'.join(comb) for comb in combinations]
             for j in joined:
-                if j[-1] == '_': # trim
+                if j[-1] == '_':  # trim
                     j = j[:-1]
                 if j not in self.variable_map.keys():
-                    self.variable_map[j.replace('-', '')] = False
+                    self.variable_map[j.replace('-', '_')] = False
                 self.add_line(2, j + ' : ' + var_type + ';')
             
         self.add_line(1, 'end ' + ('Vars' if obs is None else 'Obsvars'))
@@ -100,7 +100,7 @@ class CodeGenerator:
 
     @staticmethod
     def get_candidate(comb, param_map, precondition):
-        predicate = precondition[0].replace('-', '')
+        predicate = precondition[0].replace('-', '_')
         arguments = [comb[param_map[p]] for p in precondition[1:]]
         candidate = '_'.join([predicate] + arguments)
         return candidate
@@ -112,6 +112,7 @@ class CodeGenerator:
 
     def add_protocol(self, empty=None):
         self.add_line(1, 'Protocol:')
+        actions_without_precondition = set()
 
         if empty is not None:
             self.add_line(2, 'Other : { none };')
@@ -121,11 +122,15 @@ class CodeGenerator:
         next_actions = collections.defaultdict(set)
 
         for action_name, next_combination in self.combinations.items():
-            next_actions[next_combination].add(action_name.replace('-', '_'))
+            next_action = action_name.replace('-', '_')
+            if next_combination:
+                next_actions[next_combination].add(next_action)
+            else:
+                actions_without_precondition.add(next_action)
 
         for precondition, actions in next_actions.items():
-            next_str = precondition + ' : { ' + ', '.join(actions) + ' };'
-            self.add_line(2, next_str)
+            enabled_actions = ' : { ' + ', '.join(actions.union(actions_without_precondition)) + ' };'
+            self.add_line(2, precondition + enabled_actions)
 
         self.add_line(1, 'end Protocol')
 

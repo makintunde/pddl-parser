@@ -90,7 +90,7 @@ class PddlParser:
             t = group.pop(0)
             if not type(t) is list:
                 raise Exception(str(t) + 'is not recognized as a valid predicate.')
-            without_dash = [c.replace('-','') for c in t]
+            without_dash = [c.replace('-','_') for c in t]
             self.predicates.append(without_dash)
 
     def get_predicates(self):
@@ -121,6 +121,8 @@ class PddlParser:
                     self.state = group
                 elif t == ':goal':
                     self.split_propositions(group[1], self.positive_goals, self.negative_goals, '', 'goals')
+                    self.positive_goals = self.remove_dashes(self.positive_goals)
+                    self.negative_goals = self.remove_dashes(self.negative_goals)
                 else:
                     print(str(t) + ' is not recognized in problem')
 
@@ -157,5 +159,8 @@ class PddlParser:
         self.parse_domain(self.domain)
         self.parse_problem(self.problem)
 
-
-
+    def remove_dashes(self, goals):
+        result = []
+        for goal in goals:
+            result.append([goal[0].replace('-', '_')])
+        return result
