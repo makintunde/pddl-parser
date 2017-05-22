@@ -1,0 +1,4 @@
+*.pyc
+problems/*
+output/*
+.idea/
