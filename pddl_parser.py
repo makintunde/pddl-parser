@@ -18,7 +18,7 @@ class PddlParser:
         self.typed_objects = {}
 
     def scan_tokens(self, filename):
-        with open(filename,'r') as f:
+        with open(filename, 'r') as f:
             # Remove single line comments
             str = re.sub(r';.*$', '', f.read(), flags=re.MULTILINE).lower()
         # Tokenize
@@ -81,19 +81,21 @@ class PddlParser:
         negative_preconditions = []
         add_effects = []
         del_effects = []
+        types = {}
         while group:
             t = group.pop(0)
             if t == ':parameters':
                 if not type(group) is list:
-                    raise Exception('Error with '+ name + ' parameters')
-                parameters = self.parse_parameters(group.pop(0))
+                    raise Exception('Error with ' + name + ' parameters')
+                parameters = self.parse_parameters(group.pop(0), types)
             elif t == ':precondition':
                 self.split_propositions(group.pop(0), positive_preconditions, negative_preconditions, name, ' preconditions')
             elif t == ':effect':
                 self.split_propositions(group.pop(0), add_effects, del_effects, name, ' effects')
             else:
                 print(str(t) + ' is not recognized in action')
-        self.actions.append(Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects))
+        action = Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects, types)
+        self.actions.append(action)
 
     def parse_predicates(self, group):
         if self.typing:
@@ -103,8 +105,11 @@ class PddlParser:
                 t = group.pop(0)
                 if not type(t) is list:
                     raise Exception(str(t) + 'is not recognized as a valid predicate.')
-                without_dash = [c.replace('-', '_') for c in t]
+                without_dash = map(self.remove_dashes_inner, t)
                 self.predicates.append(without_dash)
+
+    def remove_dashes_inner(self, item):
+        return item.replace('-', '_')
 
     def get_predicates(self):
         return self.predicates
@@ -149,7 +154,7 @@ class PddlParser:
 
     def split_propositions(self, group, pos, neg, name, part):
         if not type(group) is list:
-            raise Exception('Error with '+ name + part)
+            raise Exception('Error with ' + name + part)
         if group[0] == 'and':
             group.pop(0)
         else:
@@ -158,9 +163,9 @@ class PddlParser:
             if proposition[0] == 'not':
                 if len(proposition) != 2:
                     raise Exception('Error with ' + name + ' negative' + part)
-                neg.append(proposition[-1])
+                neg.append(map(self.remove_dashes_inner, proposition[-1]))
             else:
-                pos.append(proposition)
+                pos.append(map(self.remove_dashes_inner, proposition))
 
     def print_summary(self):
         self.scan_tokens(self.domain)
@@ -181,7 +186,7 @@ class PddlParser:
         self.parse_problem(self.problem)
 
     def remove_dashes(self, goals):
-        return [[item.replace('-', '_') for item in goal] for goal in goals]
+        return [map(self.remove_dashes_inner, goal) for goal in goals]
 
     def parse_typed_objects(self, group):
         while '-' in group:
@@ -211,19 +216,16 @@ class PddlParser:
 
             self.typed_predicates.append(Predicate(predicate_name, type_of))
 
-        print [str(p) for p in self.typed_predicates]
-
-    def parse_parameters(self, param):
-        type_of = {}
+    def parse_parameters(self, param, types):
         while '-' in param:
             index_of_dash = param.index('-')
             param_type = param[index_of_dash+1]
             params = param[:index_of_dash]
             for p in params:
-                type_of[p] = param_type
+                types[p] = param_type
             param = param[index_of_dash+2:]
-        if not type_of:
+
+        if not types:
             return param
 
-        # TODO: Should this be a list or dict? Should a new data structure be created instead?
-        return type_of.items()
+        return types.keys()
