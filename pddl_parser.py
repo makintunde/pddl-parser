@@ -1,11 +1,12 @@
 import re
-import collections
 from action import Action
 
 
 class PddlParser:
 
     def __init__(self, domain, problem):
+        self.typing = False
+        self.types = set()
         self.domain = domain
         self.problem = problem
         self.actions = []
@@ -44,21 +45,23 @@ class PddlParser:
         tokens = self.scan_tokens(domain_filename)
         if type(tokens) is list and tokens.pop(0) == 'define':
             self.domain_name = 'unknown'
+            self.typing = False
 
             while tokens:
                 group = tokens.pop(0)
                 t = group.pop(0)
-                if   t == 'domain':
+                if t == 'domain':
                     self.domain_name = group[0]
                 elif t == ':requirements':
-                    pass # TODO
+                    self.typing = ':typing' in group
                 elif t == ':predicates':
                     self.parse_predicates(group)
                 elif t == ':types':
-                    pass # TODO
+                    self.types = set(group)
                 elif t == ':action':
                     self.parse_action(group)
-                else: print(str(t) + ' is not recognized in domain')
+                else:
+                    print(str(t) + ' is not recognized in domain')
         else:
             raise 'File ' + domain_filename + ' does not match domain pattern'
 
@@ -177,5 +180,8 @@ class PddlParser:
             index_of_dash = group.index('-')
             objects = group[:index_of_dash]
             object_type = group[index_of_dash+1]
-            self.typed_objects[object_type] = objects
+            if object_type in self.types:
+                self.typed_objects[object_type] = objects
+            else:
+                raise Exception('Type "' + str(object_type) + '" is not recognised in domain.')
             group = group[index_of_dash+2:]
