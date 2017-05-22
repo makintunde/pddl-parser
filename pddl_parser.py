@@ -1,4 +1,5 @@
 import re
+from predicate import Predicate
 from action import Action
 
 
@@ -85,7 +86,7 @@ class PddlParser:
             if t == ':parameters':
                 if not type(group) is list:
                     raise Exception('Error with '+ name + ' parameters')
-                parameters = group.pop(0)
+                parameters = self.parse_parameters(group.pop(0))
             elif t == ':precondition':
                 self.split_propositions(group.pop(0), positive_preconditions, negative_preconditions, name, ' preconditions')
             elif t == ':effect':
@@ -196,11 +197,33 @@ class PddlParser:
     def parse_typed_predicates(self, group):
         while group:
             to_parse = group.pop(0)
-            predicate_name = to_parse.pop(0)
-            arg_list = []
+            predicate_name = to_parse.pop(0).replace('-', '_')
+            type_of = {}
+
             while '-' in to_parse:
                 index_of_dash = to_parse.index('-')
+                arg = to_parse[index_of_dash-1]
                 arg_type = to_parse[index_of_dash+1]
-                arg_list.append(arg_type)
+                if arg_type not in self.types:
+                    raise Exception('Unknown type: "' + arg_type)
+                type_of[arg] = arg_type
                 to_parse = to_parse[index_of_dash+2:]
-            self.typed_predicates.append((predicate_name, arg_list))
+
+            self.typed_predicates.append(Predicate(predicate_name, type_of))
+
+        print [str(p) for p in self.typed_predicates]
+
+    def parse_parameters(self, param):
+        type_of = {}
+        while '-' in param:
+            index_of_dash = param.index('-')
+            param_type = param[index_of_dash+1]
+            params = param[:index_of_dash]
+            for p in params:
+                type_of[p] = param_type
+            param = param[index_of_dash+2:]
+        if not type_of:
+            return param
+
+        # TODO: Should this be a list or dict? Should a new data structure be created instead?
+        return type_of.items()
