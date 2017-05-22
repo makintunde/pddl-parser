@@ -37,17 +37,19 @@ class CodeGenerator:
         self.add_line(0, 'end Agent')
 
     def initialise_variable_map(self):
-        for s in self.parser.state:
-            variable = '_'.join(s).replace('-', '_')
+        for s in self.parser.initial_state:
+            variable = '_'.join(s)
             self.variable_map[variable] = True
 
     def add_vars(self, obs=None, empty=None):
         self.add_line(1, ('Vars' if obs is None else 'Obsvars') + ':')
+
+        # Check whether we should generate an empty list of variables.
         if empty is not None:
             self.add_line(2, 'state : { empty };')
             self.add_line(1, 'end ' + ('Vars' if obs is None else 'Obsvars'))
             return
-        var_type = 'boolean'
+
         predicates = self.parser.predicates
         objects = self.parser.objects
         for p in predicates:
@@ -59,8 +61,8 @@ class CodeGenerator:
                     j = j[:-1]
                 if j not in self.variable_map.keys():
                     self.variable_map[j.replace('-', '_')] = False
-                self.add_line(2, j + ' : ' + var_type + ';')
-            
+                self.add_line(2, j + ' : boolean;')
+
         self.add_line(1, 'end ' + ('Vars' if obs is None else 'Obsvars'))
     
     def add_red_states(self):

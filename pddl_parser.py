@@ -97,6 +97,26 @@ class PddlParser:
         action = Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects, types)
         self.actions.append(action)
 
+    def parse_typed_predicates(self, group):
+        while group:
+            to_parse = group.pop(0)
+            predicate_name = to_parse.pop(0).replace('-', '_')
+            type_of = {}
+            args = []
+
+            while '-' in to_parse:
+                index_of_dash = to_parse.index('-')
+                arg = to_parse[index_of_dash-1]
+                args.append(arg)
+                arg_type = to_parse[index_of_dash+1]
+                if arg_type not in self.types:
+                    raise Exception('Type "' + str(arg_type) + '" is not recognised in domain.')
+                type_of[arg] = arg_type
+                to_parse = to_parse[index_of_dash+2:]
+
+            self.predicates.append([predicate_name] + args)
+            self.typed_predicates.append(Predicate(predicate_name, type_of))
+
     def parse_predicates(self, group):
         if self.typing:
             self.parse_typed_predicates(group)
@@ -119,7 +139,7 @@ class PddlParser:
         if type(tokens) is list and tokens.pop(0) == 'define':
             self.problem_name = 'unknown'
             self.objects = []
-            self.state = []
+            self.initial_state = []
             self.typing = False
 
             while tokens:
@@ -138,13 +158,13 @@ class PddlParser:
                     if self.typing:
                         # Handle typing-specific parsing.
                         group.pop(0)
-                        self.parse_typed_objects(group)
+                        self.objects = self.parse_typed_objects(group)
                     else:
                         group.pop(0)
                         self.objects = group
                 elif t == ':init':
                     group.pop(0)
-                    self.state = group
+                    self.initial_state = self.remove_dashes(group)
                 elif t == ':goal':
                     self.split_propositions(group[1], self.positive_goals, self.negative_goals, '', 'goals')
                     self.positive_goals = self.remove_dashes(self.positive_goals)
@@ -177,7 +197,7 @@ class PddlParser:
         print('----------------------------')
         print('Problem name: ' + self.problem_name)
         print('Objects: ' + str(self.objects))
-        print('State: ' + str(self.state))
+        print('State: ' + str(self.initial_state))
         print('Positive goals: ' + str(self.positive_goals))
         print('Negative goals: ' + str(self.negative_goals))
         
@@ -194,32 +214,19 @@ class PddlParser:
             objects = group[:index_of_dash]
             object_type = group[index_of_dash+1]
             if object_type in self.types:
-                self.typed_objects[object_type] = objects
+                for obj in objects:
+                    self.typed_objects[obj] = object_type
             else:
                 raise Exception('Type "' + str(object_type) + '" is not recognised in domain.')
             group = group[index_of_dash+2:]
-
-    def parse_typed_predicates(self, group):
-        while group:
-            to_parse = group.pop(0)
-            predicate_name = to_parse.pop(0).replace('-', '_')
-            type_of = {}
-
-            while '-' in to_parse:
-                index_of_dash = to_parse.index('-')
-                arg = to_parse[index_of_dash-1]
-                arg_type = to_parse[index_of_dash+1]
-                if arg_type not in self.types:
-                    raise Exception('Unknown type: "' + arg_type)
-                type_of[arg] = arg_type
-                to_parse = to_parse[index_of_dash+2:]
-
-            self.typed_predicates.append(Predicate(predicate_name, type_of))
+        return self.typed_objects.keys()
 
     def parse_parameters(self, param, types):
         while '-' in param:
             index_of_dash = param.index('-')
             param_type = param[index_of_dash+1]
+            if param_type not in self.types:
+                raise Exception('Type "' + str(param_type) + '" is not recognised in domain.')
             params = param[:index_of_dash]
             for p in params:
                 types[p] = param_type

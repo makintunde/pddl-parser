@@ -16,7 +16,7 @@ class Propositional_Planner:
         parser.parse_problem(problem)
         # Parsed data
         actions = parser.actions
-        state = parser.state
+        state = parser.initial_state
         goal_pos = parser.positive_goals
         goal_not = parser.negative_goals
         # Do nothing
