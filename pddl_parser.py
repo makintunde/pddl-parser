@@ -1,4 +1,5 @@
 import re
+import collections
 from action import Action
 
 
@@ -11,6 +12,7 @@ class PddlParser:
         self.predicates = []
         self.positive_goals = []
         self.negative_goals = []
+        self.typed_objects = {}
 
     def scan_tokens(self, filename):
         with open(filename,'r') as f:
@@ -170,4 +172,10 @@ class PddlParser:
         return [[item.replace('-', '_') for item in goal] for goal in goals]
 
     def parse_typed_objects(self, group):
-        pass
+        group.pop(0)
+        while '-' in group:
+            index_of_dash = group.index('-')
+            objects = group[:index_of_dash]
+            object_type = group[index_of_dash+1]
+            self.typed_objects[object_type] = objects
+            group = group[index_of_dash+2:]

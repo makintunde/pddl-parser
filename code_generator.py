@@ -107,7 +107,8 @@ class CodeGenerator:
 
     def add_actions(self, empty=None):
         self.add_line(1, 'Actions = {')
-        self.add_line(2, ', '.join(action.replace('-', '_') for action in self.effects.keys()) if empty is None else 'none')
+        next_line = ', '.join(action.replace('-', '_') for action in self.effects.keys())
+        self.add_line(2, next_line if empty is None else 'none')
         self.add_line(1, '};')
 
     def add_protocol(self, empty=None):
