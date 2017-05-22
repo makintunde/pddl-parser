@@ -58,6 +58,8 @@ class PddlParser:
                     self.parse_predicates(group)
                 elif t == ':types':
                     self.types = set(group)
+                elif t == ':constants':
+                    self.parse_typed_objects(group)
                 elif t == ':action':
                     self.parse_action(group)
                 else:
@@ -124,6 +126,7 @@ class PddlParser:
                 elif t == ':objects':
                     if self.typing:
                         # Handle typing-specific parsing.
+                        group.pop(0)
                         self.parse_typed_objects(group)
                     else:
                         group.pop(0)
@@ -175,7 +178,6 @@ class PddlParser:
         return [[item.replace('-', '_') for item in goal] for goal in goals]
 
     def parse_typed_objects(self, group):
-        group.pop(0)
         while '-' in group:
             index_of_dash = group.index('-')
             objects = group[:index_of_dash]
