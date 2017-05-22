@@ -102,6 +102,7 @@ class PddlParser:
             self.problem_name = 'unknown'
             self.objects = []
             self.state = []
+            self.typing = False
 
             while tokens:
                 group = tokens.pop(0)
@@ -112,10 +113,16 @@ class PddlParser:
                     if self.domain_name != group[-1]:
                         raise Exception('Different domain specified in problem file')
                 elif t == ':requirements':
-                    pass # TODO
-                elif t == ':objects':
                     group.pop(0)
-                    self.objects = group
+                    self.requirements = group
+                    self.typing = ':typing' in self.requirements
+                elif t == ':objects':
+                    if self.typing:
+                        # Handle typing-specific parsing.
+                        self.parse_typed_objects(group)
+                    else:
+                        group.pop(0)
+                        self.objects = group
                 elif t == ':init':
                     group.pop(0)
                     self.state = group
@@ -160,7 +167,7 @@ class PddlParser:
         self.parse_problem(self.problem)
 
     def remove_dashes(self, goals):
-        result = []
-        for goal in goals:
-            result.append([goal[0].replace('-', '_')])
-        return result
+        return [[item.replace('-', '_') for item in goal] for goal in goals]
+
+    def parse_typed_objects(self, group):
+        pass

@@ -107,7 +107,7 @@ class CodeGenerator:
 
     def add_actions(self, empty=None):
         self.add_line(1, 'Actions = {')
-        self.add_line(2, ', '.join(action.replace('-', '_') for action, _ in self.effects.items()) if empty is None else 'none')
+        self.add_line(2, ', '.join(action.replace('-', '_') for action in self.effects.keys()) if empty is None else 'none')
         self.add_line(1, '};')
 
     def add_protocol(self, empty=None):
@@ -150,13 +150,13 @@ class CodeGenerator:
     def add_evaluation(self, agent_name):
         self.add_line(0, 'Evaluation')
 
-        goals = []
         positive_goals = [agent_name + '.' + '_'.join(goal) + '=true' for goal in self.parser.positive_goals]
         positive_goal_spec = ' and '.join(positive_goals)
 
         negative_goals = [agent_name + '.' + '_'.join(goal) + '=false' for goal in self.parser.negative_goals]
-        negative_goal_spec = ' and '.join(negative_goals) 
+        negative_goal_spec = ' and '.join(negative_goals)
 
+        goals = []
         if positive_goals:
             goals.append(positive_goal_spec)
         if negative_goals:
