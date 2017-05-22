@@ -50,11 +50,18 @@ class CodeGenerator:
             self.add_line(1, 'end ' + ('Vars' if obs is None else 'Obsvars'))
             return
 
-        predicates = self.parser.predicates
-        objects = self.parser.objects
-        for p in predicates:
+        if self.parser.typing:
+            # Deal with typed objects and predicates.
+            self.add_typed_vars()
+        else:
+            self.add_untyped_vars()
+
+        self.add_line(1, 'end ' + ('Vars' if obs is None else 'Obsvars'))
+
+    def add_untyped_vars(self):
+        for p in self.parser.predicates:
             num_arguments = len(p) - 1
-            combinations = list(itertools.permutations(objects, num_arguments))
+            combinations = list(itertools.permutations(self.parser.objects, num_arguments))
             joined = [p[0] + '_' + '_'.join(comb) for comb in combinations]
             for j in joined:
                 if j[-1] == '_':  # trim
@@ -63,8 +70,6 @@ class CodeGenerator:
                     self.variable_map[j.replace('-', '_')] = False
                 self.add_line(2, j + ' : boolean;')
 
-        self.add_line(1, 'end ' + ('Vars' if obs is None else 'Obsvars'))
-    
     def add_red_states(self):
         self.add_line(1, 'RedStates:')
         self.add_line(1, 'end RedStates')
@@ -212,3 +217,19 @@ class CodeGenerator:
         self.generate()
         for line in self.code_generator:
             print(line)
+
+    def add_typed_vars(self):
+        typed_predicates = self.parser.typed_predicates
+
+        for t in typed_predicates:
+            items = []
+            name = t.get_name()
+            args = t.get_arguments()
+            for k, arg_type in args.items():
+                items.append([o for o, obj_type in self.parser.typed_objects.items() if arg_type == obj_type])
+            combinations = itertools.product(*items)
+            for c in combinations:
+                next_name = '_'.join((name,) + c)
+                self.add_line(2, next_name + ' : boolean;')
+                if next_name not in self.variable_map:
+                    self.variable_map[next_name] = False
