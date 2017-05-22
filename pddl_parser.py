@@ -5,6 +5,7 @@ from action import Action
 class PddlParser:
 
     def __init__(self, domain, problem):
+        self.typed_predicates = []
         self.typing = False
         self.types = set()
         self.domain = domain
@@ -89,16 +90,20 @@ class PddlParser:
                 self.split_propositions(group.pop(0), positive_preconditions, negative_preconditions, name, ' preconditions')
             elif t == ':effect':
                 self.split_propositions(group.pop(0), add_effects, del_effects, name, ' effects')
-            else: print(str(t) + ' is not recognized in action')
+            else:
+                print(str(t) + ' is not recognized in action')
         self.actions.append(Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects))
 
     def parse_predicates(self, group):
-        while group:
-            t = group.pop(0)
-            if not type(t) is list:
-                raise Exception(str(t) + 'is not recognized as a valid predicate.')
-            without_dash = [c.replace('-','_') for c in t]
-            self.predicates.append(without_dash)
+        if self.typing:
+            self.parse_typed_predicates(group)
+        else:
+            while group:
+                t = group.pop(0)
+                if not type(t) is list:
+                    raise Exception(str(t) + 'is not recognized as a valid predicate.')
+                without_dash = [c.replace('-', '_') for c in t]
+                self.predicates.append(without_dash)
 
     def get_predicates(self):
         return self.predicates
@@ -187,3 +192,15 @@ class PddlParser:
             else:
                 raise Exception('Type "' + str(object_type) + '" is not recognised in domain.')
             group = group[index_of_dash+2:]
+
+    def parse_typed_predicates(self, group):
+        while group:
+            to_parse = group.pop(0)
+            predicate_name = to_parse.pop(0)
+            arg_list = []
+            while '-' in to_parse:
+                index_of_dash = to_parse.index('-')
+                arg_type = to_parse[index_of_dash+1]
+                arg_list.append(arg_type)
+                to_parse = to_parse[index_of_dash+2:]
+            self.typed_predicates.append((predicate_name, arg_list))
