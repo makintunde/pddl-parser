@@ -76,34 +76,54 @@ class CodeGenerator:
 
     def prepare_actions(self):
         for action in self.parser.actions:
-            combinations = itertools.permutations(self.parser.objects, len(action.parameters))
-            param_map = {action: i for i, action in enumerate(action.parameters)}
-           
-            for i, comb in enumerate(combinations):
-                candidates = []
-                negatives = []
-                positives = []
+            if self.parser.typing:
+                self.prepare_typed_action(action)
+            else:
+                self.prepare_untyped_action(action)
 
-                for precondition in action.positive_preconditions:
-                    candidate = self.get_candidate(comb, param_map, precondition)
-                    candidates.append('Environment.' + candidate)
+    def prepare_typed_action(self, action):
+        items = []
+        for param in action.parameters:
+            items.append([o for o, obj_type in self.parser.typed_objects.items() if action.types[param] == obj_type])
+        combinations = itertools.product(*items)
+        param_map = {action: i for i, action in enumerate(action.parameters)}
+        self.get_preconditions_and_effects(action, combinations, param_map)
 
-                for positive in action.add_effects:
-                    candidate = self.get_candidate(comb, param_map, positive)
-                    positives.append(candidate + '=true')
+    def get_preconditions_and_effects(self, action, combinations, param_map):
+        for i, comb in enumerate(combinations):
+            candidates = []
+            negatives = []
+            positives = []
 
-                for negative in action.del_effects:
-                    candidate = self.get_candidate(comb, param_map, negative)
-                    negatives.append(candidate + '=false')
+            for precondition in action.positive_preconditions:
+                candidate = self.get_candidate(comb, param_map, precondition)
+                candidates.append('Environment.' + candidate)
 
-                next_combination = ' and '.join(candidate + '=true' for candidate in candidates)
-                next_effect = ' and '.join(positives + negatives)
-                
-                action_name = '_'.join((action.name,) + comb)
+            for positive in action.add_effects:
+                candidate = self.get_candidate(comb, param_map, positive)
+                positives.append(candidate)
 
-                # To be used for Evolution.
-                self.effects[action_name] = next_effect
-                self.combinations[action_name] = next_combination
+            for negative in action.del_effects:
+                candidate = self.get_candidate(comb, param_map, negative)
+                negatives.append(candidate)
+
+            if negatives == positives:
+                continue
+
+            next_combination = ' and '.join(candidate + '=true' for candidate in candidates)
+            with_effects = [p + '=true' for p in positives] + [n + '=false' for n in negatives]
+            next_effect = ' and '.join(with_effects)
+
+            action_name = '_'.join((action.name,) + comb)
+
+            # To be used for Evolution.
+            self.effects[action_name] = next_effect
+            self.combinations[action_name] = next_combination
+
+    def prepare_untyped_action(self, action):
+        combinations = itertools.permutations(self.parser.objects, len(action.parameters))
+        param_map = {action: i for i, action in enumerate(action.parameters)}
+        self.get_preconditions_and_effects(action, combinations, param_map)
 
     @staticmethod
     def get_candidate(comb, param_map, precondition):
@@ -148,7 +168,7 @@ class CodeGenerator:
             for action, effect in self.effects.items():
                 # Add effects for action-performing agent.
                 for agent in agents:
-                    next_line = effect + ' if ' + agent + '.Action=' + action.replace('-', '_') + ';'
+                    next_line = effect + ' if ' + agent + '.Action=' + action + ';'
                     self.add_line(2, next_line)
         else:
             # Empty evolution.
