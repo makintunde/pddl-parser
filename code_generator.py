@@ -67,7 +67,7 @@ class CodeGenerator:
                 if j[-1] == '_':  # trim
                     j = j[:-1]
                 if j not in self.variable_map.keys():
-                    self.variable_map[j.replace('-', '_')] = False
+                    self.variable_map[j] = False
                 self.add_line(2, j + ' : boolean;')
 
     def add_red_states(self):
@@ -127,14 +127,14 @@ class CodeGenerator:
 
     @staticmethod
     def get_candidate(comb, param_map, precondition):
-        predicate = precondition[0].replace('-', '_')
+        predicate = precondition[0]
         arguments = [comb[param_map[p]] for p in precondition[1:]]
         candidate = '_'.join([predicate] + arguments)
         return candidate
 
     def add_actions(self, empty=None):
         self.add_line(1, 'Actions = {')
-        next_line = ', '.join(action.replace('-', '_') for action in self.effects.keys())
+        next_line = ', '.join(self.effects.keys())
         self.add_line(2, next_line if empty is None else 'none')
         self.add_line(1, '};')
 
@@ -150,7 +150,7 @@ class CodeGenerator:
         next_actions = collections.defaultdict(set)
 
         for action_name, next_combination in self.combinations.items():
-            next_action = action_name.replace('-', '_')
+            next_action = action_name
             if next_combination:
                 next_actions[next_combination].add(next_action)
             else:
