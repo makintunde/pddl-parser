@@ -161,7 +161,7 @@ class PddlParser:
                         self.objects = self.parse_typed_objects(group)
                     else:
                         group.pop(0)
-                        self.objects = group
+                        self.objects = map(self.remove_dashes_inner, group)
                 elif t == ':init':
                     group.pop(0)
                     self.initial_state = self.remove_dashes(group)
@@ -233,6 +233,6 @@ class PddlParser:
             param = param[index_of_dash+2:]
 
         if not types:
-            return param
+            return map(self.remove_dashes_inner, param)
 
         return types.keys()
