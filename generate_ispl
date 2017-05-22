@@ -1,0 +1,11 @@
+#!/bin/bash
+
+cmd="python -B PDDL.py problems/"
+cmd+=$1
+cmd+="/domain.pddl problems/"
+cmd+=$1
+cmd+="/problem.pddl > output/"
+cmd+=$1
+cmd+=".ispl"
+echo $cmd
+exec $cmd
