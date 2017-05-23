@@ -97,38 +97,40 @@ class PddlParser:
         action = Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects, types)
         self.actions.append(action)
 
-    def parse_typed_predicates(self, group):
-        while group:
-            to_parse = group.pop(0)
-            predicate_name = to_parse.pop(0).replace('-', '_')
-            type_of = {}
-            args = []
+    def parse_typed_predicates(self, to_parse):
+        # TODO: What about predicates with dashes in the predicate name?
+        if not type(to_parse) is list:
+            raise Exception(str(to_parse) + 'is not recognized as a valid predicate.')
+        predicate_name = self.remove_dashes_inner(to_parse.pop(0))
+        type_of = {}
+        args = []
 
-            while '-' in to_parse:
-                index_of_dash = to_parse.index('-')
-                arg = to_parse[index_of_dash-1]
-                args.append(arg)
-                arg_type = to_parse[index_of_dash+1]
-                if arg_type not in self.types:
-                    raise Exception('Type "' + str(arg_type) + '" is not recognised in domain.')
-                type_of[arg] = arg_type
-                to_parse = to_parse[index_of_dash+2:]
+        while '-' in to_parse:
+            index_of_dash = to_parse.index('-')
+            arg_type = to_parse[index_of_dash+1]
+            if arg_type not in self.types:
+                raise Exception('Type "' + str(arg_type) + '" is not recognised in domain.')
+            arg = to_parse[index_of_dash - 1]
+            args.append(arg)
+            type_of[arg] = arg_type
+            to_parse = to_parse[index_of_dash+2:]
 
-            self.predicates.append([predicate_name] + args)
-            self.typed_predicates.append(Predicate(predicate_name, type_of))
+        self.predicates.append([predicate_name] + args)
+        self.typed_predicates.append(Predicate(predicate_name, type_of))
 
     def parse_predicates(self, group):
-        if self.typing:
-            self.parse_typed_predicates(group)
-        else:
-            while group:
-                t = group.pop(0)
-                if not type(t) is list:
-                    raise Exception(str(t) + 'is not recognized as a valid predicate.')
-                without_dash = map(self.remove_dashes_inner, t)
+        while group:
+            to_parse = group.pop(0)
+            if not type(to_parse) is list:
+                raise Exception(str(to_parse) + 'is not recognized as a valid predicate.')
+            if self.typing:
+                self.parse_typed_predicates(to_parse)
+            else:
+                without_dash = map(self.remove_dashes_inner, to_parse)
                 self.predicates.append(without_dash)
 
-    def remove_dashes_inner(self, item):
+    @staticmethod
+    def remove_dashes_inner(item):
         return item.replace('-', '_')
 
     def get_predicates(self):
@@ -197,7 +199,7 @@ class PddlParser:
         print('----------------------------')
         print('Problem name: ' + self.problem_name)
         print('Objects: ' + str(self.objects))
-        print('State: ' + str(self.initial_state))
+        print('Initial state: ' + str(self.initial_state))
         print('Positive goals: ' + str(self.positive_goals))
         print('Negative goals: ' + str(self.negative_goals))
         
