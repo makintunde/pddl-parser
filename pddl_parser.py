@@ -61,7 +61,7 @@ class PddlParser:
                 elif t == ':types':
                     self.types = set(group)
                 elif t == ':constants':
-                    self.parse_typed_objects(group)
+                    self.parse_typed_objects(group, self.typed_objects)
                 elif t == ':action':
                     self.parse_action(group)
                 else:
@@ -70,7 +70,7 @@ class PddlParser:
             raise 'File ' + domain_filename + ' does not match domain pattern'
 
     def parse_action(self, group):
-        name = group.pop(0)
+        name = self.remove_dashes_inner(group.pop(0))
         if not type(name) is str:
             raise Exception('Action without name definition')
         for act in self.actions:
@@ -87,7 +87,7 @@ class PddlParser:
             if t == ':parameters':
                 if not type(group) is list:
                     raise Exception('Error with ' + name + ' parameters')
-                parameters = self.parse_parameters(group.pop(0), types)
+                parameters = self.parse_typed_objects(group.pop(0), types)
             elif t == ':precondition':
                 self.split_propositions(group.pop(0), positive_preconditions, negative_preconditions, name, ' preconditions')
             elif t == ':effect':
@@ -158,7 +158,7 @@ class PddlParser:
                     if self.typing:
                         # Handle typing-specific parsing.
                         group.pop(0)
-                        self.objects = self.parse_typed_objects(group)
+                        self.objects = self.parse_typed_objects(group, self.typed_objects)
                     else:
                         group.pop(0)
                         self.objects = map(self.remove_dashes_inner, group)
@@ -208,31 +208,18 @@ class PddlParser:
     def remove_dashes(self, goals):
         return [map(self.remove_dashes_inner, goal) for goal in goals]
 
-    def parse_typed_objects(self, group):
+    def parse_typed_objects(self, group, types):
         while '-' in group:
             index_of_dash = group.index('-')
+            obj_type = group[index_of_dash+1]
+            if obj_type not in self.types:
+                raise Exception('Type "' + str(obj_type) + '" is not recognised in domain.')
             objects = group[:index_of_dash]
-            object_type = group[index_of_dash+1]
-            if object_type in self.types:
-                for obj in objects:
-                    self.typed_objects[obj] = object_type
-            else:
-                raise Exception('Type "' + str(object_type) + '" is not recognised in domain.')
+            for obj in objects:
+                types[obj] = obj_type
             group = group[index_of_dash+2:]
-        return self.typed_objects.keys()
-
-    def parse_parameters(self, param, types):
-        while '-' in param:
-            index_of_dash = param.index('-')
-            param_type = param[index_of_dash+1]
-            if param_type not in self.types:
-                raise Exception('Type "' + str(param_type) + '" is not recognised in domain.')
-            params = param[:index_of_dash]
-            for p in params:
-                types[p] = param_type
-            param = param[index_of_dash+2:]
 
         if not types:
-            return map(self.remove_dashes_inner, param)
+            return map(self.remove_dashes_inner, group)
 
         return types.keys()
