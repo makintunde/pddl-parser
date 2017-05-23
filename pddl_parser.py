@@ -97,26 +97,29 @@ class PddlParser:
         action = Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects, types)
         self.actions.append(action)
 
-    def parse_typed_predicates(self, to_parse):
+    def parse_typed_predicates(self, group):
         # TODO: What about predicates with dashes in the predicate name?
-        if not type(to_parse) is list:
-            raise Exception(str(to_parse) + 'is not recognized as a valid predicate.')
-        predicate_name = self.remove_dashes_inner(to_parse.pop(0))
-        type_of = {}
+        predicate_name = self.remove_dashes_inner(group.pop(0))
+        types = {}
         args = []
 
-        while '-' in to_parse:
-            index_of_dash = to_parse.index('-')
-            arg_type = to_parse[index_of_dash+1]
-            if arg_type not in self.types:
-                raise Exception('Type "' + str(arg_type) + '" is not recognised in domain.')
-            arg = to_parse[index_of_dash - 1]
-            args.append(arg)
-            type_of[arg] = arg_type
-            to_parse = to_parse[index_of_dash+2:]
+        while '-' in group:
+            group, objects = self.parse_group(group, types)
+            args.extend(objects)
 
         self.predicates.append([predicate_name] + args)
-        self.typed_predicates.append(Predicate(predicate_name, type_of))
+        self.typed_predicates.append(Predicate(predicate_name, types))
+
+    def parse_group(self, group, types):
+        index_of_dash = group.index('-')
+        obj_type = group[index_of_dash+1]
+        if obj_type not in self.types:
+            raise Exception('Type "' + str(obj_type) + '" is not recognised in domain.')
+        objects = group[:index_of_dash]
+        for obj in objects:
+            types[obj] = obj_type
+        group = group[index_of_dash+2:]
+        return group, objects
 
     def parse_predicates(self, group):
         while group:
@@ -142,7 +145,6 @@ class PddlParser:
             self.problem_name = 'unknown'
             self.objects = []
             self.initial_state = []
-            self.typing = False
 
             while tokens:
                 group = tokens.pop(0)
@@ -212,14 +214,7 @@ class PddlParser:
 
     def parse_typed_objects(self, group, types):
         while '-' in group:
-            index_of_dash = group.index('-')
-            obj_type = group[index_of_dash+1]
-            if obj_type not in self.types:
-                raise Exception('Type "' + str(obj_type) + '" is not recognised in domain.')
-            objects = group[:index_of_dash]
-            for obj in objects:
-                types[obj] = obj_type
-            group = group[index_of_dash+2:]
+            group, objects = self.parse_group(group, types)
 
         if not types:
             return map(self.remove_dashes_inner, group)
