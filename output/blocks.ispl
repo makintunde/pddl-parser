@@ -1,0 +1,154 @@
+Agent Environment
+    Obsvars:
+        on_d_b : boolean;
+        on_d_a : boolean;
+        on_d_c : boolean;
+        on_b_d : boolean;
+        on_b_a : boolean;
+        on_b_c : boolean;
+        on_a_d : boolean;
+        on_a_b : boolean;
+        on_a_c : boolean;
+        on_c_d : boolean;
+        on_c_b : boolean;
+        on_c_a : boolean;
+        ontable_d : boolean;
+        ontable_b : boolean;
+        ontable_a : boolean;
+        ontable_c : boolean;
+        clear_d : boolean;
+        clear_b : boolean;
+        clear_a : boolean;
+        clear_c : boolean;
+        handempty : boolean;
+        holding_d : boolean;
+        holding_b : boolean;
+        holding_a : boolean;
+        holding_c : boolean;
+    end Obsvars
+    RedStates:
+    end RedStates
+    Actions = {
+        none
+    };
+    Protocol:
+        Other : { none };
+    end Protocol
+    Evolution:
+        clear_b=true and holding_c=true and on_c_b=false and clear_c=false and handempty=false if Performer.Action=unstack_c_b;
+        clear_a=true and holding_c=true and clear_c=false and on_c_a=false and handempty=false if Performer.Action=unstack_c_a;
+        clear_d=true and holding_c=true and clear_c=false and on_c_d=false and handempty=false if Performer.Action=unstack_c_d;
+        ontable_d=true and clear_d=true and handempty=true and holding_d=false if Performer.Action=put_down_d;
+        clear_a=true and ontable_a=true and handempty=true and holding_a=false if Performer.Action=put_down_a;
+        clear_c=true and ontable_c=true and handempty=true and holding_c=false if Performer.Action=put_down_c;
+        clear_b=true and ontable_b=true and handempty=true and holding_b=false if Performer.Action=put_down_b;
+        holding_a=true and clear_a=false and ontable_a=false and handempty=false if Performer.Action=pick_up_a;
+        clear_c=true and holding_b=true and on_b_c=false and clear_b=false and handempty=false if Performer.Action=unstack_b_c;
+        holding_c=true and clear_c=false and ontable_c=false and handempty=false if Performer.Action=pick_up_c;
+        holding_b=true and clear_b=false and handempty=false and ontable_b=false if Performer.Action=pick_up_b;
+        on_d_a=true and clear_d=true and handempty=true and clear_a=false and holding_d=false if Performer.Action=stack_d_a;
+        holding_d=true and ontable_d=false and clear_d=false and handempty=false if Performer.Action=pick_up_d;
+        on_d_c=true and clear_d=true and handempty=true and holding_d=false and clear_c=false if Performer.Action=stack_d_c;
+        on_d_b=true and clear_d=true and handempty=true and holding_d=false and clear_b=false if Performer.Action=stack_d_b;
+        clear_a=true and holding_b=true and on_b_a=false and clear_b=false and handempty=false if Performer.Action=unstack_b_a;
+        clear_a=true and holding_d=true and on_d_a=false and clear_d=false and handempty=false if Performer.Action=unstack_d_a;
+        clear_c=true and on_c_d=true and handempty=true and clear_d=false and holding_c=false if Performer.Action=stack_c_d;
+        holding_d=true and clear_c=true and on_d_c=false and clear_d=false and handempty=false if Performer.Action=unstack_d_c;
+        on_c_b=true and clear_c=true and handempty=true and clear_b=false and holding_c=false if Performer.Action=stack_c_b;
+        clear_c=true and on_c_a=true and handempty=true and clear_a=false and holding_c=false if Performer.Action=stack_c_a;
+        clear_a=true and on_a_b=true and handempty=true and clear_b=false and holding_a=false if Performer.Action=stack_a_b;
+        clear_a=true and on_a_c=true and handempty=true and clear_c=false and holding_a=false if Performer.Action=stack_a_c;
+        clear_a=true and on_a_d=true and handempty=true and holding_a=false and clear_d=false if Performer.Action=stack_a_d;
+        clear_d=true and holding_b=true and clear_b=false and on_b_d=false and handempty=false if Performer.Action=unstack_b_d;
+        holding_a=true and clear_d=true and clear_a=false and on_a_d=false and handempty=false if Performer.Action=unstack_a_d;
+        clear_c=true and holding_a=true and clear_a=false and on_a_c=false and handempty=false if Performer.Action=unstack_a_c;
+        clear_b=true and holding_a=true and clear_a=false and on_a_b=false and handempty=false if Performer.Action=unstack_a_b;
+        clear_b=true and on_b_d=true and handempty=true and clear_d=false and holding_b=false if Performer.Action=stack_b_d;
+        on_b_c=true and clear_b=true and handempty=true and clear_c=false and holding_b=false if Performer.Action=stack_b_c;
+        on_b_a=true and clear_b=true and handempty=true and clear_a=false and holding_b=false if Performer.Action=stack_b_a;
+        holding_d=true and clear_b=true and on_d_b=false and clear_d=false and handempty=false if Performer.Action=unstack_d_b;
+    end Evolution
+end Agent
+Agent Performer
+    Vars:
+        state : { empty };
+    end Vars
+    Actions = {
+        unstack_c_b, unstack_c_a, unstack_c_d, put_down_d, put_down_a, put_down_c, put_down_b, pick_up_a, unstack_b_c, pick_up_c, pick_up_b, stack_d_a, pick_up_d, stack_d_c, stack_d_b, unstack_b_a, unstack_d_a, stack_c_d, unstack_d_c, stack_c_b, stack_c_a, stack_a_b, stack_a_c, stack_a_d, unstack_b_d, unstack_a_d, unstack_a_c, unstack_a_b, stack_b_d, stack_b_c, stack_b_a, unstack_d_b
+    };
+    Protocol:
+        Environment.clear_d=true and Environment.holding_c=true : { stack_c_d };
+        Environment.handempty=true and Environment.ontable_b=true and Environment.clear_b=true : { pick_up_b };
+        Environment.clear_a=true and Environment.handempty=true and Environment.on_a_d=true : { unstack_a_d };
+        Environment.holding_c=true and Environment.clear_b=true : { stack_c_b };
+        Environment.holding_c=true : { put_down_c };
+        Environment.on_a_b=true and Environment.clear_a=true and Environment.handempty=true : { unstack_a_b };
+        Environment.holding_d=true and Environment.clear_a=true : { stack_d_a };
+        Environment.holding_b=true : { put_down_b };
+        Environment.clear_a=true and Environment.handempty=true and Environment.ontable_a=true : { pick_up_a };
+        Environment.holding_c=true and Environment.clear_a=true : { stack_c_a };
+        Environment.holding_a=true and Environment.clear_b=true : { stack_a_b };
+        Environment.holding_b=true and Environment.clear_a=true : { stack_b_a };
+        Environment.on_c_d=true and Environment.handempty=true and Environment.clear_c=true : { unstack_c_d };
+        Environment.clear_c=true and Environment.handempty=true and Environment.on_c_b=true : { unstack_c_b };
+        Environment.on_a_c=true and Environment.clear_a=true and Environment.handempty=true : { unstack_a_c };
+        Environment.holding_d=true and Environment.clear_b=true : { stack_d_b };
+        Environment.clear_d=true and Environment.on_d_c=true and Environment.handempty=true : { unstack_d_c };
+        Environment.on_b_d=true and Environment.handempty=true and Environment.clear_b=true : { unstack_b_d };
+        Environment.clear_d=true and Environment.ontable_d=true and Environment.handempty=true : { pick_up_d };
+        Environment.holding_d=true : { put_down_d };
+        Environment.clear_d=true and Environment.holding_a=true : { stack_a_d };
+        Environment.ontable_c=true and Environment.handempty=true and Environment.clear_c=true : { pick_up_c };
+        Environment.holding_b=true and Environment.clear_c=true : { stack_b_c };
+        Environment.clear_d=true and Environment.holding_b=true : { stack_b_d };
+        Environment.on_c_a=true and Environment.handempty=true and Environment.clear_c=true : { unstack_c_a };
+        Environment.handempty=true and Environment.clear_b=true and Environment.on_b_c=true : { unstack_b_c };
+        Environment.holding_a=true : { put_down_a };
+        Environment.clear_d=true and Environment.on_d_b=true and Environment.handempty=true : { unstack_d_b };
+        Environment.clear_d=true and Environment.handempty=true and Environment.on_d_a=true : { unstack_d_a };
+        Environment.holding_a=true and Environment.clear_c=true : { stack_a_c };
+        Environment.holding_d=true and Environment.clear_c=true : { stack_d_c };
+        Environment.handempty=true and Environment.on_b_a=true and Environment.clear_b=true : { unstack_b_a };
+    end Protocol
+    Evolution:
+        state=empty if state=empty;
+    end Evolution
+end Agent
+Evaluation
+    goal if Environment.on_d_c=true and Environment.on_c_b=true and Environment.on_b_a=true;
+end Evaluation
+InitStates
+    Environment.on_d_a=false and
+    Environment.on_d_c=false and
+    Environment.on_d_b=false and
+    Environment.clear_a=true and
+    Environment.clear_c=true and
+    Environment.clear_b=true and
+    Environment.clear_d=true and
+    Environment.ontable_d=true and
+    Environment.ontable_a=true and
+    Environment.ontable_c=true and
+    Environment.ontable_b=true and
+    Environment.holding_d=false and
+    Environment.holding_a=false and
+    Environment.holding_c=false and
+    Environment.holding_b=false and
+    Environment.handempty=true and
+    Environment.on_a_d=false and
+    Environment.on_a_b=false and
+    Environment.on_a_c=false and
+    Environment.on_c_b=false and
+    Environment.on_c_a=false and
+    Environment.on_c_d=false and
+    Environment.on_b_c=false and
+    Environment.on_b_a=false and
+    Environment.on_b_d=false;
+end InitStates
+Groups
+    g1 = { Performer };
+end Groups
+Fairness
+end Fairness
+Formulae
+    CTL* E (G (F (goal and E (X !goal))));
+end Formulae
