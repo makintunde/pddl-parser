@@ -147,8 +147,8 @@ end Groups
 Fairness
 end Fairness
 Formulae
-    EF (goal and EG right_free);
-    --CTL* E((G F right_free) -> G( E (F(G goal))));
+    EF (goal) and EG (right_free); -- Eventually reach the goal and permanently have the right gripper free thereafter.
+    --CTL* E ((G F right_free) -> G( E (F(G goal)))); -- Find a plan where if the right gripper is permanently free, it is always eventually possible for agent 1 to know that q is permanently true
     --CTL* E ((G F goal) and (G right_free)); -- Infinitely often reach the goal never using the right gripper.  
     --CTL* E ((F goal) and (G right_free)); -- Find a way to eventually achieve the goal and never use the right gripper.
     --CTL* E (G (F (goal and (E (X !goal))))); -- Whenever I achieve the goal, I can find a way to negate it in the next action.

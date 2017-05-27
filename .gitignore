@@ -1,4 +1,8 @@
+*.ps
+*.info
+*.dot
 *.pyc
+*.swp
 problems/*
 output/*
 .idea/

@@ -13,5 +13,6 @@ if __name__ == '__main__':
     problem = sys.argv[2]
     parser = PddlParser(domain, problem)
     parser.parse()
-    code_generator = CodeGenerator(parser)
-    code_generator.print_code()
+    parser.print_summary()
+    # code_generator = CodeGenerator(parser)
+    # code_generator.print_code()

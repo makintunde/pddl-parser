@@ -94,9 +94,8 @@ class CodeGenerator:
             candidates = set()
             negatives = set()
             positives = set()
-            all_candidates = set()
 
-            self.get_all_candidates(action, all_candidates, candidates, comb, negatives, param_map, positives)
+            self.get_all_candidates(action, candidates, comb, negatives, param_map, positives)
 
             if negatives == positives:
                 continue
@@ -111,7 +110,9 @@ class CodeGenerator:
             self.effects[action_name] = next_effect
             self.combinations[action_name] = next_combination
 
-    def get_all_candidates(self, action, all_candidates, candidates, comb, negatives, param_map, positives):
+    def get_all_candidates(self, action, candidates, comb, negatives, param_map, positives):
+        all_candidates = set()
+
         for precondition in action.positive_preconditions:
             candidate = self.get_candidate(comb, param_map, precondition)
             candidates.add('Environment.' + candidate)
@@ -129,6 +130,8 @@ class CodeGenerator:
                 return
             negatives.add(candidate)
             all_candidates.add(candidate)
+
+        return candidates, negatives, positives
 
     def prepare_untyped_action(self, action):
         combinations = itertools.permutations(self.parser.objects, len(action.parameters))

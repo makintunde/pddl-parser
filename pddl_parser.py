@@ -1,6 +1,7 @@
 import re
 from predicate import Predicate
 from action import Action
+from ctl_goal import CtlGoal
 
 
 class PddlParser:
@@ -10,10 +11,13 @@ class PddlParser:
         self.typing = False
         self.types = set()
         self.domain = domain
+        self.domain_name = None
         self.problem = problem
+        self.problem_name = None
         self.actions = []
         self.predicates = []
         self.positive_goals = []
+        self.ctlgoals = []
         self.negative_goals = []
         self.typed_objects = {}
 
@@ -98,7 +102,6 @@ class PddlParser:
         self.actions.append(action)
 
     def parse_typed_predicates(self, group):
-        # TODO: What about predicates with dashes in the predicate name?
         predicate_name = self.remove_dashes_inner(group.pop(0))
         types = {}
         args = []
@@ -173,8 +176,10 @@ class PddlParser:
                     self.split_propositions(group[1], self.positive_goals, self.negative_goals, '', 'goals')
                     self.positive_goals = self.remove_dashes(self.positive_goals)
                     self.negative_goals = self.remove_dashes(self.negative_goals)
+                elif t == ':ctlgoal':
+                    self.ctlgoals = CtlGoal(group[1])
                 else:
-                    print(str(t) + ' is not recognized in problem')
+                    raise Exception(str(t) + ' is not recognized in problem')
 
     def split_propositions(self, group, pos, neg, name, part):
         if not type(group) is list:
@@ -189,7 +194,8 @@ class PddlParser:
                     raise Exception('Error with ' + name + ' negative' + part)
                 neg.append(map(self.remove_dashes_inner, proposition[-1]))
             else:
-                pos.append(map(self.remove_dashes_inner, proposition))
+                pos.append(proposition)
+                # pos.append(map(self.remove_dashes_inner, proposition))
 
     def print_summary(self):
         self.scan_tokens(self.domain)
@@ -204,6 +210,7 @@ class PddlParser:
         print('Initial state: ' + str(self.initial_state))
         print('Positive goals: ' + str(self.positive_goals))
         print('Negative goals: ' + str(self.negative_goals))
+        print('CTL goals: ' + str(self.ctlgoals))
         
     def parse(self):
         self.parse_domain(self.domain)
