@@ -22,9 +22,11 @@ class PddlParser:
         self.typed_objects = {}
 
     def scan_tokens(self, filename):
+        # TODO: Replace 'tokens' with AST?
         with open(filename, 'r') as f:
             # Remove single line comments
             str = re.sub(r';.*$', '', f.read(), flags=re.MULTILINE).lower()
+            print str
         # Tokenize
         stack = []
         list = []
@@ -45,6 +47,7 @@ class PddlParser:
             raise Exception('Missing close parentheses')
         if len(list) != 1:
             raise Exception('Malformed expression')
+        print list[0]
         return list[0]
 
     def parse_domain(self, domain_filename):

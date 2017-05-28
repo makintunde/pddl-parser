@@ -1,3 +1,6 @@
+from treenode import TreeNode
+
+
 class CtlGoal(object):
     def __init__(self, group):
         self.goal = group
@@ -22,3 +25,27 @@ class CtlGoal(object):
                 afs.append('_'.join(proposition[-1]))
             elif proposition[0] == 'ag':
                 ags.append('_'.join(proposition[-1]))
+
+    def build_parse_tree(self, exp):
+        fp_list = exp.split()
+        p_stack = []  # A simple solution to keeping track of parents as we traverse the tree is to use a stack.
+        e_tree = TreeNode()
+        p_stack.append(e_tree)
+        current_tree = e_tree
+        for token in exp:
+            if token == exp[0]:
+                current_tree.left = TreeNode('')
+                p_stack.append(current_tree)
+                current_tree = current_tree.left
+            elif token not in ['eg', 'ef', 'ag', 'af']:
+                current_tree.val = token
+                current_tree.right = TreeNode('')
+                p_stack.append(current_tree)
+                current_tree = current_tree.right
+            elif token == exp[-1]:
+                current_tree = p_stack.pop()
+            else:
+                raise ValueError
+        return e_tree
+
+
