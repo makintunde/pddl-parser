@@ -13,6 +13,7 @@ class CodeGenerator:
         self.variable_map = {}
         self.effects = {}
         self.combinations = {}
+        self.goal_type = None
 
     def add_line(self, depth, line):
         tabs = ' ' * (depth * self.indentation_depth)
@@ -206,6 +207,12 @@ class CodeGenerator:
         goal_spec = ' and '.join(goals)
 
         self.add_line(1, 'goal if ' + goal_spec + ';')
+
+        if self.parser.goal_type in ['CTL', 'CTLSTAR']:
+            for atom in self.parser.extended_goal.get_atoms():
+                child = agent_name + '.' + atom + '=true'
+                self.add_line(1, atom + ' if ' + child + ';')
+
         self.add_line(0, 'end Evaluation')
 
     def add_init_states(self, agent_name):
@@ -228,8 +235,12 @@ class CodeGenerator:
         self.add_line(0, 'end Fairness')
 
     def add_formulae(self):
+        # TODO: Temporally-extended goals.
         self.add_line(0, 'Formulae')
-        self.add_line(1, '<g1>F goal;')
+        if self.parser.goal_type in ['CTL', 'CTLSTAR']:
+            self.add_line(1, self.parser.extended_goal.get_evaluation() + ';')
+        else:
+            self.add_line(1, '<g1>F goal;')
         self.add_line(0, 'end Formulae')
 
     def generate(self):

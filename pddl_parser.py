@@ -2,6 +2,7 @@ import re
 from predicate import Predicate
 from action import Action
 from ctl_goal import CtlGoal
+from ctl_star_goal import CtlStarGoal
 
 
 class PddlParser:
@@ -17,16 +18,16 @@ class PddlParser:
         self.actions = []
         self.predicates = []
         self.positive_goals = []
-        self.ctlgoals = []
+        self.extended_goal = None
         self.negative_goals = []
         self.typed_objects = {}
+        self.goal_type = None
 
     def scan_tokens(self, filename):
         # TODO: Replace 'tokens' with AST?
         with open(filename, 'r') as f:
             # Remove single line comments
             str = re.sub(r';.*$', '', f.read(), flags=re.MULTILINE).lower()
-            print str
         # Tokenize
         stack = []
         list = []
@@ -47,7 +48,6 @@ class PddlParser:
             raise Exception('Missing close parentheses')
         if len(list) != 1:
             raise Exception('Malformed expression')
-        print list[0]
         return list[0]
 
     def parse_domain(self, domain_filename):
@@ -180,7 +180,11 @@ class PddlParser:
                     self.positive_goals = self.remove_dashes(self.positive_goals)
                     self.negative_goals = self.remove_dashes(self.negative_goals)
                 elif t == ':ctlgoal':
-                    self.ctlgoals = CtlGoal(group[1])
+                    self.extended_goal = CtlGoal(group[1])
+                    self.goal_type = 'CTL'
+                elif t == ':ctlstargoal':
+                    self.extended_goal = CtlStarGoal(group[1])
+                    self.goal_type = 'CTLSTAR'
                 else:
                     raise Exception(str(t) + ' is not recognized in problem')
 
@@ -197,8 +201,7 @@ class PddlParser:
                     raise Exception('Error with ' + name + ' negative' + part)
                 neg.append(map(self.remove_dashes_inner, proposition[-1]))
             else:
-                pos.append(proposition)
-                # pos.append(map(self.remove_dashes_inner, proposition))
+                pos.append(map(self.remove_dashes_inner, proposition))
 
     def print_summary(self):
         self.scan_tokens(self.domain)
@@ -213,7 +216,7 @@ class PddlParser:
         print('Initial state: ' + str(self.initial_state))
         print('Positive goals: ' + str(self.positive_goals))
         print('Negative goals: ' + str(self.negative_goals))
-        print('CTL goals: ' + str(self.ctlgoals))
+        print('CTL goals: ' + str(self.extended_goal))
         
     def parse(self):
         self.parse_domain(self.domain)
