@@ -38,9 +38,8 @@ class CodeGenerator:
         self.add_line(0, 'end Agent')
 
     def initialise_variable_map(self):
-        for s in self.parser.initial_state:
-            variable = '_'.join(s)
-            self.variable_map[variable] = True
+        for s in self.parser.initial_state.serialise():
+            self.variable_map[s] = True
 
     def add_vars(self, obs=None, empty=None):
         self.add_line(1, ('Vars' if obs is None else 'Obsvars') + ':')
@@ -218,10 +217,14 @@ class CodeGenerator:
     def add_init_states(self, agent_name):
         self.add_line(0, 'InitStates')
         init_states = []
-        for variable in self.variable_map:
-            truth_strings = ['false', 'true']
-            truth = truth_strings[self.variable_map[variable]]
-            init_states.append(agent_name + '.' + variable + '=' + truth)
+        for variable, _ in self.variable_map.items():
+            if '#' in variable:
+                tokens = variable.split('#')
+                init_states.append('( ' + ' or '.join(agent_name + '.' + token + '=true' for token in tokens) + ' )')
+            else:
+                truth_strings = ['false', 'true']
+                truth = truth_strings[self.variable_map[variable]]
+                init_states.append(agent_name + '.' + variable + '=' + truth)
         self.add_line(1, ' and\n    '.join(init_states) + ';')
         self.add_line(0, 'end InitStates')
 

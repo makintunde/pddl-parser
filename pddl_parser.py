@@ -3,6 +3,7 @@ from predicate import Predicate
 from action import Action
 from ctl_goal import CtlGoal
 from ctl_star_goal import CtlStarGoal
+from initial_state import InitState
 
 
 class PddlParser:
@@ -174,7 +175,7 @@ class PddlParser:
                         self.objects = map(self.remove_dashes_inner, group)
                 elif t == ':init':
                     group.pop(0)
-                    self.initial_state = self.remove_dashes(group)
+                    self.initial_state = self.parse_initial_state(group)
                 elif t == ':goal':
                     self.split_propositions(group[1], self.positive_goals, self.negative_goals, '', 'goals')
                     self.positive_goals = self.remove_dashes(self.positive_goals)
@@ -233,3 +234,7 @@ class PddlParser:
             return map(self.remove_dashes_inner, group)
 
         return types.keys()
+
+    @staticmethod
+    def parse_initial_state(group):
+        return InitState(group)
