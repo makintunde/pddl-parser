@@ -40,6 +40,8 @@ class CtlStarGoal(ExtendedGoal):
 
                 if t[0] == 'implies':
                     op = '->'
+                elif op == 'until':
+                    op = 'U'
 
                 ans = '( ' + ans1 + ' ) ' + op + ' ( ' + ans2 + ' )'
             else:  # Something went wrong.

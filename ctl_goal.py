@@ -26,7 +26,7 @@ class CtlGoal(ExtendedGoal):
             elif len(t) == 2:  # t is a list [op, t].
                 op = t[0]
                 ans = self.eval(t[1])
-                if op in ['eg', 'ef', 'ag', 'af']:
+                if op in ['eg', 'ef', 'ag', 'af', 'ax', 'ex']:
                     ans = op.upper() + ' ( ' + ans + ' )'
                 elif op == 'not':
                     ans = '!( ' + ans + ' )'
@@ -36,7 +36,16 @@ class CtlGoal(ExtendedGoal):
             elif len(t) == 3:  # t is a list [and, t1, t2].
                 ans1 = self.eval(t[1])
                 ans2 = self.eval(t[2])
-                ans = '( ' + ans1 + ' ) ' + t[0] + ' ( ' + ans2 + ' )'
+                op = t[0]
+
+                if op == 'implies':
+                    op = '->'
+                elif op == 'until':
+                    op = 'U'
+
+                ans = '( ' + ans1 + ' ) ' + op + ' ( ' + ans2 + ' )'
+                if op == 'U':
+                    ans = 'E (' + ans + ')'
             else:  # Something went wrong.
                 print 'Eval error:', t, 'is illegal'
                 raise Exception
