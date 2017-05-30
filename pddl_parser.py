@@ -4,6 +4,7 @@ from action import Action
 from ctl_goal import CtlGoal
 from ctl_star_goal import CtlStarGoal
 from initial_state import InitState
+from forall_effect import ForAllEffect
 
 
 class PddlParser:
@@ -11,6 +12,7 @@ class PddlParser:
     def __init__(self, domain, problem):
         self.typed_predicates = []
         self.typing = False
+        self.adl = False
         self.types = set()
         self.domain = domain
         self.domain_name = None
@@ -64,6 +66,7 @@ class PddlParser:
                     self.domain_name = group[0]
                 elif t == ':requirements':
                     self.typing = ':typing' in group
+                    self.adl = ':adl' in group
                 elif t == ':predicates':
                     self.parse_predicates(group)
                 elif t == ':types':
@@ -89,6 +92,7 @@ class PddlParser:
         negative_preconditions = []
         add_effects = []
         del_effects = []
+        forall_effects = []
         types = {}
         while group:
             t = group.pop(0)
@@ -97,12 +101,12 @@ class PddlParser:
                     raise Exception('Error with ' + name + ' parameters')
                 parameters = self.parse_typed_objects(group.pop(0), types)
             elif t == ':precondition':
-                self.split_propositions(group.pop(0), positive_preconditions, negative_preconditions, name, ' preconditions')
+                self.split_propositions(group.pop(0), positive_preconditions, negative_preconditions, name, ' preconditions', forall=forall_effects)
             elif t == ':effect':
-                self.split_propositions(group.pop(0), add_effects, del_effects, name, ' effects')
+                self.split_propositions(group.pop(0), add_effects, del_effects, name, ' effects', forall=forall_effects)
             else:
                 print(str(t) + ' is not recognized in action')
-        action = Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects, types)
+        action = Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects, types, forall=forall_effects)
         self.actions.append(action)
 
     def parse_typed_predicates(self, group):
@@ -189,7 +193,7 @@ class PddlParser:
                 else:
                     raise Exception(str(t) + ' is not recognized in problem')
 
-    def split_propositions(self, group, pos, neg, name, part):
+    def split_propositions(self, group, pos, neg, name, part, forall=None):
         if not type(group) is list:
             raise Exception('Error with ' + name + part)
         if group[0] == 'and':
@@ -200,9 +204,16 @@ class PddlParser:
             if proposition[0] == 'not':
                 if len(proposition) != 2:
                     raise Exception('Error with ' + name + ' negative' + part)
-                neg.append(map(self.remove_dashes_inner, proposition[-1]))
+                # neg.append(map(self.remove_dashes_inner, proposition[-1]))
+                neg.append(proposition[-1])
+            elif proposition[0] == 'forall':
+                if len(proposition) != 3:
+                    raise Exception('Error with ' + name + ' forall' + part)
+                effect = ForAllEffect(proposition[1], proposition[2])
+                forall.append(effect)
             else:
-                pos.append(map(self.remove_dashes_inner, proposition))
+                pos.append(proposition)
+                # pos.append(map(self.remove_dashes_inner, proposition))
 
     def print_summary(self):
         self.scan_tokens(self.domain)
