@@ -11,3 +11,6 @@ class Predicate(object):
 
     def __str__(self):
         return '(' + self.name + ', ' + str(self.arguments) + ')'
+
+    def __repr__(self):
+        return self.__str__()

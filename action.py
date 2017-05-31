@@ -18,10 +18,10 @@ class Action:
         if forall:
             self.forall_effects = forall
             for f in self.forall_effects:
+                # Append the types included in the forall statement in the existing types dictionary.
                 self.types = dict(self.types, **f.types)
 
     def __str__(self):
-        print self.forall_effects
         return 'action: ' + self.name + \
                '\n  parameters: ' + str(self.parameters) + \
                '\n  positive_preconditions: ' + str(self.positive_preconditions) + \

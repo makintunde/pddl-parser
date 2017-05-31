@@ -124,6 +124,12 @@ class PddlParser:
     def parse_group(self, group, types):
         index_of_dash = group.index('-')
         obj_type = group[index_of_dash+1]
+        # if isinstance(obj_type, list):  # The object can have more than one type.
+        #     obj_type = obj_type[1:]
+        # else:  # It's a single type.
+        #     obj_type = [obj_type]
+        #
+        # if any(x not in self.types for x in obj_type):
         if obj_type not in self.types:
             raise Exception('Type "' + str(obj_type) + '" is not recognised in domain.')
         objects = group[:index_of_dash]
@@ -204,22 +210,20 @@ class PddlParser:
             if proposition[0] == 'not':
                 if len(proposition) != 2:
                     raise Exception('Error with ' + name + ' negative' + part)
-                # neg.append(map(self.remove_dashes_inner, proposition[-1]))
-                neg.append(proposition[-1])
+                neg.append(map(self.remove_dashes_inner, proposition[-1]))
             elif proposition[0] == 'forall':
                 if len(proposition) != 3:
                     raise Exception('Error with ' + name + ' forall' + part)
-                effect = ForAllEffect(proposition[1], proposition[2])
-                forall.append(effect)
+                forall.append(ForAllEffect(proposition[1], proposition[2]))
             else:
-                pos.append(proposition)
-                # pos.append(map(self.remove_dashes_inner, proposition))
+                pos.append(map(self.remove_dashes_inner, proposition))
 
     def print_summary(self):
         self.scan_tokens(self.domain)
         self.scan_tokens(self.problem)
         print('Domain name:' + self.domain_name)
         print('Predicates: ' + str(self.predicates))
+        print('Typed predicates: ' + str(self.typed_predicates))
         for act in self.actions:
             print(act)
         print('----------------------------')

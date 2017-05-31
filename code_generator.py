@@ -133,17 +133,17 @@ class CodeGenerator:
 
         return candidates, negatives, positives
 
-    def prepare_untyped_action(self, action):
-        combinations = itertools.permutations(self.parser.objects, len(action.parameters))
-        param_map = {action: i for i, action in enumerate(action.parameters)}
-        self.get_preconditions_and_effects(action, combinations, param_map)
-
     @staticmethod
     def get_candidate(comb, param_map, precondition):
         predicate = precondition[0]
         arguments = [comb[param_map[p]] for p in precondition[1:]]
         candidate = '_'.join([predicate] + arguments)
         return candidate
+
+    def prepare_untyped_action(self, action):
+        combinations = itertools.permutations(self.parser.objects, len(action.parameters))
+        param_map = {action: i for i, action in enumerate(action.parameters)}
+        self.get_preconditions_and_effects(action, combinations, param_map)
 
     def add_actions(self, empty=None):
         self.add_line(1, 'Actions = {')
