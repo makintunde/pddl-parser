@@ -18,7 +18,7 @@ class InitState(object):
     def serialise(self):
         result = []
         for s in self.states:
-            if s[0] == 'oneof':
+            if s[0] in ['oneof', '=']:
                 result.append('#'.join('_'.join(i) for i in s[1:]))
             else:
                 result.append('_'.join(s))

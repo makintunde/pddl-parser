@@ -23,6 +23,7 @@ class PddlParser:
         self.negative_goals = []
         self.typed_objects = {}
         self.goal_type = None
+        self.function = None
 
     def scan_tokens(self, filename):
         # TODO: Replace 'tokens' with AST?
@@ -70,6 +71,8 @@ class PddlParser:
                     self.types = set(group)
                 elif t == ':constants':
                     self.parse_typed_objects(group, self.typed_objects)
+                elif t == ':functions':
+                    self.functions = self.parse_functions(group)
                 elif t == ':action':
                     self.parse_action(group)
                 else:
@@ -141,7 +144,7 @@ class PddlParser:
 
     @staticmethod
     def remove_dashes_inner(item):
-        return item.replace('-', '_')
+        return item   # return item.replace('-', '_')
 
     def get_predicates(self):
         return self.predicates
@@ -180,7 +183,7 @@ class PddlParser:
                     self.split_propositions(group[1], self.positive_goals, self.negative_goals, '', 'goals')
                     self.positive_goals = self.remove_dashes(self.positive_goals)
                     self.negative_goals = self.remove_dashes(self.negative_goals)
-                elif t == ':ctlgoal':
+                elif t in [':ctlgoal', ':stronggoal']:
                     self.extended_goal = CtlGoal(group[1])
                     self.goal_type = 'CTL'
                 elif t == ':ctlstargoal':
@@ -238,3 +241,19 @@ class PddlParser:
     @staticmethod
     def parse_initial_state(group):
         return InitState(group)
+
+    def parse_functions(self, group):
+        types = {}
+        index_of_dash = group.index('-')
+        obj_type = group[index_of_dash + 1]
+        if obj_type not in self.types:
+            raise Exception('Type "' + str(obj_type) + '" is not recognised in domain.')
+        (objects,) = group[:index_of_dash]
+        for obj in objects:
+            types[obj] = obj_type
+
+        args = objects
+        self.predicates.append(['='] + args)
+        self.typed_predicates.append(Predicate('=', types))
+
+        return objects
