@@ -106,12 +106,15 @@ class PddlParser:
                     raise Exception('Error with ' + name + ' parameters')
                 parameters = self.parse_typed_objects(group.pop(0), types)
             elif t == ':precondition':
-                self.split_propositions(group.pop(0), positive_preconditions, negative_preconditions, positive_preconditions_or, negative_preconditions_or, name, ' preconditions')
+                self.split_propositions(group.pop(0), positive_preconditions, negative_preconditions,
+                                        positive_preconditions_or, negative_preconditions_or, name, ' preconditions')
             elif t == ':effect':
-                self.split_propositions(group.pop(0), add_effects, del_effects, add_effects_or, del_effects_or, name, ' effects')
+                self.split_propositions(group.pop(0), add_effects, del_effects, add_effects_or, del_effects_or, name,
+                                        ' effects')
             else:
                 print(str(t) + ' is not recognized in action')
-        action = Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects, positive_preconditions_or, negative_preconditions_or, add_effects_or, del_effects_or, types)
+        action = Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects,
+                        positive_preconditions_or, negative_preconditions_or, add_effects_or, del_effects_or, types)
         self.actions.append(action)
 
     def parse_typed_predicates(self, group):
@@ -186,11 +189,12 @@ class PddlParser:
                     group.pop(0)
                     self.initial_state = self.parse_initial_state(group)
                 elif t == ':goal':
-                    self.split_propositions(group[1], self.positive_goals, self.negative_goals, self.positive_goals_or, self.negative_goals_or, '', 'goals')
+                    self.split_propositions(group[1], self.positive_goals, self.negative_goals, self.positive_goals_or,
+                                            self.negative_goals_or, '', 'goals')
                     self.positive_goals = self.remove_dashes(self.positive_goals)
                     self.negative_goals = self.remove_dashes(self.negative_goals)
                 elif t in [':ctlgoal', ':stronggoal']:
-                    self.extended_goal = CtlGoal(group[1])
+                    self.extended_goal = CtlGoal(group[1], goal_type=group[0])
                     self.goal_type = 'CTL'
                 elif t == ':ctlstargoal':
                     self.extended_goal = CtlStarGoal(group[1])

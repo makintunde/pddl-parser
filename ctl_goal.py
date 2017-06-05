@@ -2,11 +2,15 @@ from extended_goal import ExtendedGoal
 
 
 class CtlGoal(ExtendedGoal):
-    def __init__(self, group):
-        super(CtlGoal, self).__init__(group)
+    def __init__(self, group, goal_type=None):
+        if goal_type is not None:
+            self.goal_type = goal_type
+            super(CtlGoal, self).__init__(group, self.goal_type)
+        else:
+            super(CtlGoal, self).__init__(group)
 
     def get_evaluation(self):
-        return self.evaluation
+        return self.eval(self.goal)
 
     def eval(self, t):
         """
@@ -46,6 +50,9 @@ class CtlGoal(ExtendedGoal):
                 ans = '( ' + ans1 + ' ) ' + op + ' ( ' + ans2 + ' )'
                 if op == 'U':
                     ans = 'E (' + ans + ')'
+                elif self.goal_type is not None:
+                    goal_map = {':stronggoal': 'AF', ':weakgoal': 'EF'}
+                    ans = goal_map[self.goal_type] + ' ( ' + ans + ' ) '
             else:  # Something went wrong.
                 print 'Eval error:', t, 'is illegal'
                 raise Exception
