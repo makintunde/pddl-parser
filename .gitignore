@@ -1,3 +1,5 @@
+*.nupddl
+*.pddl
 *.ps
 *.info
 *.dot
