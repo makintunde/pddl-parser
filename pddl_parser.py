@@ -113,9 +113,12 @@ class PddlParser:
                                         ' effects')
             else:
                 print(str(t) + ' is not recognized in action')
+
         action = Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects,
                         positive_preconditions_or, negative_preconditions_or, add_effects_or, del_effects_or, types)
-        self.actions.append(action)
+
+        if not self.check_conditional_effects(action):
+            self.actions.append(action)
 
     def parse_typed_predicates(self, group):
         predicate_name = self.remove_dashes_inner(group.pop(0))
@@ -272,6 +275,30 @@ class PddlParser:
 
         args = objects
         self.predicates.append(['='] + args)
+        self.predicates.append(['assign'] + args)
         self.typed_predicates.append(Predicate('=', types))
 
         return objects
+
+    def check_conditional_effects(self, action):
+        name = action.name
+        params = action.parameters
+        pos_pre = action.positive_preconditions
+        neg_pre = action.negative_preconditions
+        add_eff = action.add_effects
+        del_eff = action.del_effects
+        pos_pre_or = action.positive_preconditions_or
+        neg_pre_or = action.negative_preconditions_or
+        add_eff_or = action.add_effects_or
+        del_eff_or = action.del_effects_or
+        types = action.types
+        actions = []
+
+        for i, e in enumerate(action.add_effects):
+            if e[0] == 'when':
+                actions.append(Action(name + str(i), params, pos_pre + e[1], neg_pre, add_eff + e[2], del_eff,
+                                      pos_pre_or, neg_pre_or, add_eff_or, del_eff_or, types))
+
+        self.actions.extend(actions)
+
+        return len(actions) > 0

@@ -24,10 +24,10 @@ class Action:
                '\n  parameters: ' + str(self.parameters) + \
                '\n  positive_preconditions: ' + str(self.positive_preconditions) + \
                '\n  negative_preconditions: ' + str(self.negative_preconditions) + \
-               '\n  add_effects: ' + str(self.add_effects) + \
-               '\n  del_effects: ' + str(self.del_effects) + \
                '\n  positive_preconditions_or: ' + str(self.positive_preconditions_or) + \
                '\n  negative_preconditions_or: ' + str(self.negative_preconditions_or) + \
+               '\n  add_effects: ' + str(self.add_effects) + \
+               '\n  del_effects: ' + str(self.del_effects) + \
                '\n  add_effects_or: ' + str(self.add_effects_or) + \
                '\n  del_effects_or: ' + str(self.del_effects_or) + \
                '\n  types: ' + str(self.types) + \
