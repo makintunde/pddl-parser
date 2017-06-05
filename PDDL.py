@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # Four spaces as indentation [no tabs]
 
-from code_generator import CodeGenerator
 from pddl_parser import PddlParser
 
 # ==========================================

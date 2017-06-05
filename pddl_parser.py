@@ -19,6 +19,8 @@ class PddlParser:
         self.actions = []
         self.predicates = []
         self.positive_goals = []
+        self.positive_goals_or = []
+        self.negative_goals_or = []
         self.extended_goal = None
         self.negative_goals = []
         self.typed_objects = {}
@@ -92,6 +94,10 @@ class PddlParser:
         negative_preconditions = []
         add_effects = []
         del_effects = []
+        positive_preconditions_or = []
+        negative_preconditions_or = []
+        add_effects_or = []
+        del_effects_or = []
         types = {}
         while group:
             t = group.pop(0)
@@ -100,12 +106,12 @@ class PddlParser:
                     raise Exception('Error with ' + name + ' parameters')
                 parameters = self.parse_typed_objects(group.pop(0), types)
             elif t == ':precondition':
-                self.split_propositions(group.pop(0), positive_preconditions, negative_preconditions, name, ' preconditions')
+                self.split_propositions(group.pop(0), positive_preconditions, negative_preconditions, positive_preconditions_or, negative_preconditions_or, name, ' preconditions')
             elif t == ':effect':
-                self.split_propositions(group.pop(0), add_effects, del_effects, name, ' effects')
+                self.split_propositions(group.pop(0), add_effects, del_effects, add_effects_or, del_effects_or, name, ' effects')
             else:
                 print(str(t) + ' is not recognized in action')
-        action = Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects, types)
+        action = Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects, positive_preconditions_or, negative_preconditions_or, add_effects_or, del_effects_or, types)
         self.actions.append(action)
 
     def parse_typed_predicates(self, group):
@@ -180,7 +186,7 @@ class PddlParser:
                     group.pop(0)
                     self.initial_state = self.parse_initial_state(group)
                 elif t == ':goal':
-                    self.split_propositions(group[1], self.positive_goals, self.negative_goals, '', 'goals')
+                    self.split_propositions(group[1], self.positive_goals, self.negative_goals, self.positive_goals_or, self.negative_goals_or, '', 'goals')
                     self.positive_goals = self.remove_dashes(self.positive_goals)
                     self.negative_goals = self.remove_dashes(self.negative_goals)
                 elif t in [':ctlgoal', ':stronggoal']:
@@ -192,10 +198,12 @@ class PddlParser:
                 else:
                     raise Exception(str(t) + ' is not recognized in problem')
 
-    def split_propositions(self, group, pos, neg, name, part):
+    def split_propositions(self, group, pos, neg, pos_ors, neg_ors, name, part):
         if not type(group) is list:
             raise Exception('Error with ' + name + part)
-        if group[0] == 'and':
+        using_and = False
+        if group[0] in ['and', 'or']:
+            using_and = group[0] == 'and'
             group.pop(0)
         else:
             group = [group]
@@ -203,9 +211,15 @@ class PddlParser:
             if proposition[0] == 'not':
                 if len(proposition) != 2:
                     raise Exception('Error with ' + name + ' negative' + part)
-                neg.append(map(self.remove_dashes_inner, proposition[-1]))
+                if using_and:
+                    neg.append(map(self.remove_dashes_inner, proposition[-1]))
+                else:
+                    neg_ors.append(map(self.remove_dashes_inner, proposition[-1]))
             else:
-                pos.append(map(self.remove_dashes_inner, proposition))
+                if using_and:
+                    pos.append(map(self.remove_dashes_inner, proposition))
+                else:
+                    pos_ors.append(map(self.remove_dashes_inner, proposition))
 
     def print_summary(self):
         self.scan_tokens(self.domain)
