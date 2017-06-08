@@ -1,0 +1,75 @@
+Agent Environment
+    Obsvars:
+        says_may_move_left : boolean;
+        says_may_move_right : boolean;
+        says_smell : boolean;
+    end Obsvars
+    Vars:
+        robot_position : { store, lab, ne_room, sw_room, dep };
+        open_door_d1 : boolean;
+        open_door_d2 : boolean;
+        open_door_d3 : boolean;
+    end Vars
+    Actions = {
+        none
+    };
+    Protocol:
+        Other : { none };
+    end Protocol
+    Evolution:
+        says_may_move_left=true if robot_position=dep and open_door_d3=true or
+                                   robot_position=lab and open_door_d1=true or
+                                   robot_position=ne_room and open_door_d2=true;
+        says_may_move_right=true if robot_position=sw_room and open_door_d3=true or
+                                    robot_position=store and open_door_d2=true or
+                                    robot_position=store and open_door_d1=true;        
+        says_smell=true if robot_position=lab;
+        says_smell=false if robot_position=store or robot_position=ne_room or robot_position=sw_room or 
+                            robot_position=dep;
+        robot_position=store if ( Performer.Action=move_robot_left and robot_position=ne_room) or 
+                                ( Performer.Action=move_robot_up and robot_position=sw_room );
+        robot_position=ne_room if ( Performer.Action=move_robot_right and robot_position=store ) or 
+                                  ( Performer.Action=move_robot_up and robot_position=dep ) or 
+                                  (Performer.Action=move_robot_down and robot_position=lab );
+        robot_position=lab if ( Performer.Action=move_robot_up and robot_position=ne_room );
+        robot_position=sw_room if ( Performer.Action=move_robot_left and robot_position=dep) or 
+                                  ( Performer.Action=move_robot_down and robot_position=store );
+        robot_position=dep if ( Performer.Action=move_robot_right and robot_position=sw_room ) or 
+                              ( Performer.Action=move_robot_down and robot_position=ne_room );
+    end Evolution
+end Agent
+Agent Performer
+    Vars:
+        may_move_left : boolean;
+        may_move_right : boolean;
+        smell : boolean;
+    end Vars
+    Actions = {
+        move_robot_up, move_robot_down, move_robot_right, move_robot_left
+    };
+    Protocol:
+        may_move_left=true : { move_robot_left, move_robot_down, move_robot_up };
+        may_move_right=true : { move_robot_right, move_robot_down, move_robot_up };
+    end Protocol
+    Evolution:
+        may_move_left=true if Environment.says_may_move_left=true;
+        may_move_right=true if Environment.says_may_move_right=true;
+        smell=true if Environment.says_smell=true; 
+    end Evolution
+end Agent
+Evaluation
+    goal if Environment.robot_position=dep;
+end Evaluation
+InitStates
+    Environment.robot_position=store and ( Environment.open_door_d1=true and Environment.open_door_d2=false and Environment.open_door_d3=false or 
+                                           Environment.open_door_d2=true and Environment.open_door_d3=false and Environment.open_door_d1=false or 
+                                           Environment.open_door_d3=true and Environment.open_door_d1=false and Environment.open_door_d2=false );
+end InitStates
+Groups
+    g1 = { Performer };
+end Groups
+Fairness
+end Fairness
+Formulae
+    EF goal;
+end Formulae
