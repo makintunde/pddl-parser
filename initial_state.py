@@ -13,7 +13,10 @@ class InitState(object):
         return str(self.eval())
 
     def eval(self):
-        return [s[1:] if s[0] == 'oneof' else s for s in self.states]
+        states = self.states
+        states[0] = [s[0] if isinstance(s, list) and len(s) == 1 else s for s in states[0]]
+        print 'states:', states
+        return [s[1:] if s[0] == 'oneof' else s for s in states]
 
     def serialise(self):
         result = []

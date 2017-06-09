@@ -26,6 +26,7 @@ class PddlParser:
         self.typed_objects = {}
         self.goal_type = None
         self.function = None
+        self.function_types = {}
 
     def scan_tokens(self, filename):
         # TODO: Replace 'tokens' with AST?
@@ -75,6 +76,7 @@ class PddlParser:
                     self.parse_typed_objects(group, self.typed_objects)
                 elif t == ':functions':
                     self.functions = self.parse_functions(group)
+                    self.typing = True
                 elif t == ':action':
                     self.parse_action(group)
                 else:
@@ -131,6 +133,53 @@ class PddlParser:
 
         self.predicates.append([predicate_name] + args)
         self.typed_predicates.append(Predicate(predicate_name, types))
+
+    def parse_functions(self, group):
+        if isinstance(group[0], list) and len(group[0]) == 1:
+            (group[0],) = group[0]
+        types = {}
+        args = []
+
+        while '-' in group:
+            group, objects = self.parse_group(group, types)
+            args.extend(objects)
+
+        self.predicates.append(['=', '?r1', '?r2'])
+        self.function_types = types
+        predicate_types = {'r1': 'room', 'r2': 'room'}
+        self.typed_predicates.append(Predicate('=', predicate_types))
+
+    def flatten(self, item):
+        items = []
+        for i in item:
+            if isinstance(i, list) and len(i) == 1:
+                if i[0] != '=':
+                    items.append('?' + i[0])
+                else:
+                    items.append(i[0])
+            else:
+                items.append('?' + i if i != '=' else i)
+        return items
+
+    def check_conditional_effects(self, action):
+        name = action.name
+        actions = []
+        constants = dict(self.typed_objects, **self.function_types)
+
+        for i, e in enumerate(action.add_effects):
+            if e[0] == 'when':
+                if e[2][0] == 'assign':
+                    e[2][0] = '='
+                    e[1] = self.flatten(e[1])
+                    e[2] = self.flatten(e[2])
+                    all_types = [e[1][-1], e[2][-1], e[1][1]]
+                    types = {('?' + o): o_type for o, o_type in constants.items() if ('?' + o) in all_types}
+                    params = types.keys()
+                    actions.append(Action(name + str(i), params, [e[1]], [], [e[2]], [e[1]], [], [], [], [], types))
+
+        self.actions.extend(actions)
+
+        return len(actions) > 0
 
     def parse_group(self, group, types):
         index_of_dash = group.index('-')
@@ -263,42 +312,3 @@ class PddlParser:
     def parse_initial_state(group):
         return InitState(group)
 
-    def parse_functions(self, group):
-        types = {}
-        index_of_dash = group.index('-')
-        obj_type = group[index_of_dash + 1]
-        if obj_type not in self.types:
-            raise Exception('Type "' + str(obj_type) + '" is not recognised in domain.')
-        (objects,) = group[:index_of_dash]
-        for obj in objects:
-            types[obj] = obj_type
-
-        args = objects
-        self.predicates.append(['='] + args)
-        self.predicates.append(['assign'] + args)
-        self.typed_predicates.append(Predicate('=', types))
-
-        return objects
-
-    def check_conditional_effects(self, action):
-        name = action.name
-        params = action.parameters
-        pos_pre = action.positive_preconditions
-        neg_pre = action.negative_preconditions
-        add_eff = action.add_effects
-        del_eff = action.del_effects
-        pos_pre_or = action.positive_preconditions_or
-        neg_pre_or = action.negative_preconditions_or
-        add_eff_or = action.add_effects_or
-        del_eff_or = action.del_effects_or
-        types = action.types
-        actions = []
-
-        for i, e in enumerate(action.add_effects):
-            if e[0] == 'when':
-                actions.append(Action(name + str(i), params, pos_pre + e[1], neg_pre, add_eff + e[2], del_eff,
-                                      pos_pre_or, neg_pre_or, add_eff_or, del_eff_or, types))
-
-        self.actions.extend(actions)
-
-        return len(actions) > 0

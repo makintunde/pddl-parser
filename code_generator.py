@@ -112,7 +112,6 @@ class CodeGenerator:
 
     def get_all_candidates(self, action, candidates, comb, negatives, param_map, positives):
         all_candidates = set()
-
         for precondition in action.positive_preconditions:
             candidate = self.get_candidate(comb, param_map, precondition)
             candidates.add('Environment.' + candidate)
