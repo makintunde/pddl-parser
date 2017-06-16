@@ -6,7 +6,7 @@ class CtlStarGoal(ExtendedGoal):
         super(CtlStarGoal, self).__init__(group)
 
     def get_evaluation(self):
-        return 'CTL* ' + self.evaluation
+        return 'CTL* ' + self.eval(self.goal)
 
     def eval(self, t):
         """
@@ -45,6 +45,5 @@ class CtlStarGoal(ExtendedGoal):
 
                 ans = '( ' + ans1 + ' ) ' + op + ' ( ' + ans2 + ' )'
             else:  # Something went wrong.
-                print 'Eval error:', t, 'is illegal'
-                raise Exception
+                raise Exception('Eval error: ' + str(t) + ' is illegal')
         return ans

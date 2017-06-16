@@ -2,7 +2,6 @@ class ExtendedGoal(object):
     def __init__(self, group):
         self.atoms = []
         self.goal = group
-        self.evaluation = self.eval(self.goal)
 
     def __str__(self):
         return str(self.goal)
