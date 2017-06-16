@@ -1,0 +1,107 @@
+Agent Environment
+    Vars:
+        room : { ne, se, nw, sw };
+
+        wall_n_true : boolean;
+        wall_n_false : boolean;
+
+        wall_s_true : boolean;
+        wall_s_false : boolean;
+
+        wall_w_true : boolean;
+        wall_w_false : boolean;
+
+        wall_e_true : boolean;
+        wall_e_false : boolean;
+    end Vars
+    Actions = {
+        none
+    };
+    Protocol:
+       Other : { none }; 
+    end Protocol
+    Evolution:
+        room=ne and 
+        wall_n_false=false and wall_n_true=true and
+        wall_s_false=true and wall_s_true=false and
+        wall_e_false=false and wall_e_true=true and
+        wall_w_false=true and wall_w_true=false if room=nw and Performer.Action=go_east or 
+                                                   room=se and Performer.Action=go_north;
+
+        room=se and 
+        wall_n_false=true and wall_n_true=false and
+        wall_s_false=false and wall_s_true=true and
+        wall_e_false=false and wall_e_true=true and
+        wall_w_false=true and wall_w_true=false if room=ne and Performer.Action=go_south or 
+                                                   room=sw and Performer.Action=go_east;
+        
+        room=nw and 
+        wall_n_false=false and wall_n_true=true and
+        wall_s_false=false and wall_s_true=true and
+        wall_e_false=true and wall_e_true=false and
+        wall_w_false=false and wall_w_true=true if room=ne and Performer.Action=go_west;
+
+        room=sw and
+        wall_n_false=false and wall_n_true=true and
+        wall_s_false=false and wall_s_true=true and
+        wall_e_false=true and wall_e_true=false and
+        wall_w_false=false and wall_w_true=true if room=se and Performer.Action=go_west;
+     end Evolution    
+end Agent
+Agent Performer
+    Lobsvars = { wall_n_true, wall_n_false, wall_s_true, wall_s_false, wall_w_true, wall_w_false, wall_e_true, wall_e_false };
+    Vars:   
+        wall_n : { t, f, u };
+        wall_s : { t, f, u };
+        wall_e : { t, f, u };
+        wall_w : { t, f, u };
+    end Vars   
+    Actions = {
+        go_north, go_south, go_east, go_west, none
+    };
+
+    Protocol:
+        wall_n=f : { go_north };
+        wall_s=f : { go_south };
+        wall_e=f : { go_east };
+        wall_w=f : { go_west };
+        Other : { none };
+    end Protocol
+
+    Evolution:
+        wall_n=t if Environment.wall_n_true=true and Environment.wall_n_false=false and Environment.Action=none;
+        wall_n=f if Environment.wall_n_true=false and Environment.wall_n_false=true and Environment.Action=none;
+        wall_n=u if Environment.wall_n_true=true and Environment.wall_n_false=true and Environment.Action=none or 
+                    Environment.wall_n_true=false and Environment.wall_n_false=false and Environment.Action=none;
+
+        wall_s=t if Environment.wall_s_true=true and Environment.wall_s_false=false and Environment.Action=none;
+        wall_s=f if Environment.wall_s_true=false and Environment.wall_s_false=true and Environment.Action=none;
+        wall_s=u if Environment.wall_s_true=true and Environment.wall_s_false=true and Environment.Action=none or 
+                    Environment.wall_s_true=false and Environment.wall_s_false=false and Environment.Action=none;
+
+        wall_e=t if Environment.wall_e_true=true and Environment.wall_e_false=false and Environment.Action=none;
+        wall_e=f if Environment.wall_e_true=false and Environment.wall_e_false=true and Environment.Action=none;
+        wall_e=u if Environment.wall_e_true=true and Environment.wall_e_false=true and Environment.Action=none or
+                    Environment.wall_e_true=false and Environment.wall_e_false=false and Environment.Action=none;
+
+        wall_w=t if Environment.wall_w_true=true and Environment.wall_w_false=false and Environment.Action=none;
+        wall_w=f if Environment.wall_w_true=false and Environment.wall_w_false=true and Environment.Action=none;
+        wall_w=u if Environment.wall_w_true=true and Environment.wall_w_false=true and Environment.Action=none or 
+                    Environment.wall_w_true=false and Environment.wall_w_false=false and Environment.Action=none;
+    end Evolution
+end Agent
+Evaluation
+    goal if Environment.room=sw;    
+end Evaluation
+
+InitStates
+    Environment.room=sw and Performer.wall_n=u and Performer.wall_e=u and Performer.wall_s=u and Performer.wall_w=u;
+end InitStates
+
+Groups
+    g1 = { Performer };
+end Groups
+
+Formulae
+    EF goal;
+end Formulae
