@@ -5,6 +5,11 @@ class CtlGoal(ExtendedGoal):
     def __init__(self, group):
         super(CtlGoal, self).__init__(group)
 
+    def get_atoms(self):
+        if not self.atoms:
+            self.get_evaluation()
+        return self.atoms
+
     def get_evaluation(self):
         return self.eval(self.goal)
 

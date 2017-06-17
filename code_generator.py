@@ -267,12 +267,14 @@ class CodeGenerator:
 
     def add_typed_vars(self):
         typed_predicates = self.parser.typed_predicates
-
         for t in typed_predicates:
             items = []
             name = t.get_name()
             args = t.get_arguments()
-            for k, arg_type in args.items():
+
+            # For the current predicate, look for objects in the domains with the same type as the type of each
+            # argument of each predicate.
+            for arg_type in args.values():
                 items.append([o for o, obj_type in self.parser.typed_objects.items() if arg_type == obj_type])
             combinations = itertools.product(*items)
             for c in combinations:

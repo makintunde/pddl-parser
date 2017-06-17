@@ -28,6 +28,5 @@ class TestCtlStarGoal(TestCase):
         ctl_goal = CtlStarGoal(goal)
         with self.assertRaises(Exception) as context:
             ctl_goal.get_evaluation()
-        print context.exception
         expected_exception = 'Eval error: ' + str(goal) + ' is illegal'
         self.assertTrue(expected_exception in context.exception)
