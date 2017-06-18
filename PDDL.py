@@ -12,19 +12,22 @@ if __name__ == '__main__':
 
     flag = ''
     flag_index = 1
-    domain_index = 2
-    problem_index = 3
+    problem_dir_index = 2
+    domain_index = 3
+    problem_index = 4
 
-    if len(sys.argv) <= 3:
+    if len(sys.argv) <= 4:
         # Shift arguments up by one for potential flags.
+        problem_dir_index -= 1
         domain_index -= 1
         problem_index -= 1
     else:
         flag = sys.argv[flag_index]
 
-    domain = sys.argv[domain_index]
-    problem = sys.argv[problem_index]
-    parser = PddlParser(domain, problem)
+    problem_dir = sys.argv[problem_dir_index]
+    domain = sys.argv[domain_index] + '.pddl'
+    problem = sys.argv[problem_index] + '.pddl'
+    parser = PddlParser(problem_dir + domain, problem_dir + problem)
     parser.parse()
 
     if flag == '-d':
