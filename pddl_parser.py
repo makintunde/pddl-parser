@@ -23,6 +23,7 @@ class PddlParser:
         self.negative_goals = []
         self.typed_objects = {}
         self.goal_type = None
+        self.agents = None
 
     def scan_tokens(self, filename):
         # TODO: Replace 'tokens' with AST?
@@ -166,13 +167,7 @@ class PddlParser:
                     self.requirements = group
                     self.typing = ':typing' in self.requirements
                 elif t == ':objects':
-                    if self.typing:
-                        # Handle typing-specific parsing.
-                        group.pop(0)
-                        self.objects = self.parse_typed_objects(group, self.typed_objects)
-                    else:
-                        group.pop(0)
-                        self.objects = map(self.remove_dashes_inner, group)
+                    self.parse_objects(group)
                 elif t == ':init':
                     group.pop(0)
                     self.initial_state = self.parse_initial_state(group)
@@ -188,6 +183,15 @@ class PddlParser:
                     self.goal_type = 'CTLSTAR'
                 else:
                     raise Exception(str(t) + ' is not recognized in problem')
+
+    def parse_objects(self, group):
+        group.pop(0)
+        if self.typing:
+            # Handle typing-specific parsing.
+            self.objects, self.agents = self.parse_typed_objects(group, self.typed_objects)
+            print self.agents
+        else:
+            self.objects = map(self.remove_dashes_inner, group)
 
     def split_propositions(self, group, pos, neg, name, part):
         if not type(group) is list:
@@ -233,7 +237,14 @@ class PddlParser:
         if not types:
             return map(self.remove_dashes_inner, group)
 
-        return types.keys()
+        agents = set()
+        while group:
+            next_group = group.pop(0)
+            if next_group[0] == ':private' and next_group[-1] == 'agent':
+                if '-' in next_group:
+                    # Extract the name of the agent, which is the last string before the '-'.
+                    agents.add(next_group[next_group.index('-')-1])
+        return types.keys(), agents
 
     @staticmethod
     def parse_initial_state(group):
