@@ -1,9 +1,11 @@
 import re
-from predicate import Predicate
+
 from action import Action
 from ctl_goal import CtlGoal
 from ctl_star_goal import CtlStarGoal
 from initial_state import InitState
+from predicate_parser import PredicateParser
+from utils import remove_dashes_inner, remove_dashes, parse_group
 
 
 class PddlParser:
@@ -24,6 +26,7 @@ class PddlParser:
         self.typed_objects = {}
         self.goal_type = None
         self.agents = None
+        self.multi_agent = None
 
     def scan_tokens(self, filename):
         # TODO: Replace 'tokens' with AST?
@@ -65,6 +68,7 @@ class PddlParser:
                     self.domain_name = group[0]
                 elif t == ':requirements':
                     self.typing = ':typing' in group
+                    self.multi_agent = ':multi-agent' in group
                 elif t == ':predicates':
                     self.parse_predicates(group)
                 elif t == ':types':
@@ -79,7 +83,7 @@ class PddlParser:
             raise 'File ' + domain_filename + ' does not match domain pattern'
 
     def parse_action(self, group):
-        name = self.remove_dashes_inner(group.pop(0))
+        name = remove_dashes_inner(group.pop(0))
         if not type(name) is str:
             raise Exception('Action without name definition')
         for act in self.actions:
@@ -106,43 +110,15 @@ class PddlParser:
         action = Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects, types)
         self.actions.append(action)
 
-    def parse_typed_predicates(self, group):
-        predicate_name = self.remove_dashes_inner(group.pop(0))
-        types = {}
-        args = []
-
-        while '-' in group:
-            group, objects = self.parse_group(group, types)
-            args.extend(objects)
-
-        self.predicates.append([predicate_name] + args)
-        self.typed_predicates.append(Predicate(predicate_name, types))
-
-    def parse_group(self, group, types):
-        index_of_dash = group.index('-')
-        obj_type = group[index_of_dash+1]
-        if obj_type not in self.types:
-            raise Exception('Type "' + str(obj_type) + '" is not recognised in domain.')
-        objects = group[:index_of_dash]
-        for obj in objects:
-            types[obj] = obj_type
-        group = group[index_of_dash+2:]
-        return group, objects
-
     def parse_predicates(self, group):
+        predicate_parser = PredicateParser(self.typing, self.types)
         while group:
             to_parse = group.pop(0)
             if not type(to_parse) is list:
                 raise Exception(str(to_parse) + 'is not recognized as a valid predicate.')
-            if self.typing:
-                self.parse_typed_predicates(to_parse)
-            else:
-                without_dash = map(self.remove_dashes_inner, to_parse)
-                self.predicates.append(without_dash)
-
-    @staticmethod
-    def remove_dashes_inner(item):
-        return item.replace('-', '_')
+            predicate_parser.parse(to_parse)
+        self.predicates = predicate_parser.get_predicates()
+        self.typed_predicates = predicate_parser.get_typed_predicates()
 
     def get_predicates(self):
         return self.predicates
@@ -173,8 +149,8 @@ class PddlParser:
                     self.initial_state = self.parse_initial_state(group)
                 elif t == ':goal':
                     self.split_propositions(group[1], self.positive_goals, self.negative_goals, '', 'goals')
-                    self.positive_goals = self.remove_dashes(self.positive_goals)
-                    self.negative_goals = self.remove_dashes(self.negative_goals)
+                    self.positive_goals = remove_dashes(self.positive_goals)
+                    self.negative_goals = remove_dashes(self.negative_goals)
                 elif t == ':ctlgoal':
                     self.extended_goal = CtlGoal(group[1])
                     self.goal_type = 'CTL'
@@ -189,9 +165,8 @@ class PddlParser:
         if self.typing:
             # Handle typing-specific parsing.
             self.objects, self.agents = self.parse_typed_objects(group, self.typed_objects)
-            print self.agents
         else:
-            self.objects = map(self.remove_dashes_inner, group)
+            self.objects = map(remove_dashes_inner, group)
 
     def split_propositions(self, group, pos, neg, name, part):
         if not type(group) is list:
@@ -204,9 +179,9 @@ class PddlParser:
             if proposition[0] == 'not':
                 if len(proposition) != 2:
                     raise Exception('Error with ' + name + ' negative' + part)
-                neg.append(map(self.remove_dashes_inner, proposition[-1]))
+                neg.append(map(remove_dashes_inner, proposition[-1]))
             else:
-                pos.append(map(self.remove_dashes_inner, proposition))
+                pos.append(map(remove_dashes_inner, proposition))
 
     def print_summary(self):
         self.scan_tokens(self.domain)
@@ -227,15 +202,12 @@ class PddlParser:
         self.parse_domain(self.domain)
         self.parse_problem(self.problem)
 
-    def remove_dashes(self, goals):
-        return [map(self.remove_dashes_inner, goal) for goal in goals]
-
     def parse_typed_objects(self, group, types):
         while '-' in group:
-            group, objects = self.parse_group(group, types)
+            group, objects = parse_group(group, types, self.types)
 
         if not types:
-            return map(self.remove_dashes_inner, group)
+            return map(remove_dashes_inner, group)
 
         agents = set()
         while group:
