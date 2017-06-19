@@ -1,10 +1,9 @@
-import re
-
 from action import Action
 from ctl_goal import CtlGoal
 from ctl_star_goal import CtlStarGoal
 from initial_state import InitState
 from predicate_parser import PredicateParser
+from token_scanner import scan_tokens
 from utils import remove_dashes_inner, remove_dashes, parse_group
 
 
@@ -28,35 +27,8 @@ class PddlParser:
         self.agents = None
         self.multi_agent = None
 
-    def scan_tokens(self, filename):
-        # TODO: Replace 'tokens' with AST?
-        with open(filename, 'r') as f:
-            # Remove single line comments
-            str = re.sub(r';.*$', '', f.read(), flags=re.MULTILINE).lower()
-        # Tokenize
-        stack = []
-        list = []
-        for t in re.findall(r'[()]|[^\s()]+', str):
-            if t == '(':
-                stack.append(list)
-                list = []
-            elif t == ')':
-                if stack:
-                    l = list
-                    list = stack.pop()
-                    list.append(l)
-                else:
-                    raise Exception('Missing open parentheses')
-            else:
-                list.append(t)
-        if stack:
-            raise Exception('Missing close parentheses')
-        if len(list) != 1:
-            raise Exception('Malformed expression')
-        return list[0]
-
     def parse_domain(self, domain_filename):
-        tokens = self.scan_tokens(domain_filename)
+        tokens = scan_tokens(domain_filename)
         if type(tokens) is list and tokens.pop(0) == 'define':
             self.domain_name = 'unknown'
             self.typing = False
@@ -95,19 +67,29 @@ class PddlParser:
         add_effects = []
         del_effects = []
         types = {}
+        agents = None
         while group:
             t = group.pop(0)
             if t == ':parameters':
                 if not type(group) is list:
                     raise Exception('Error with ' + name + ' parameters')
-                parameters = self.parse_typed_objects(group.pop(0), types)
+                parameters, _ = self.parse_typed_objects(group.pop(0), types)
             elif t == ':precondition':
                 self.split_propositions(group.pop(0), positive_preconditions, negative_preconditions, name, ' preconditions')
             elif t == ':effect':
                 self.split_propositions(group.pop(0), add_effects, del_effects, name, ' effects')
+            elif t == ':agent':
+                to_parse = []
+                while group[0][0] != ':':
+                    to_parse.append(group.pop(0))
+                agents = self.parse_agents(to_parse)
             else:
                 print(str(t) + ' is not recognized in action')
-        action = Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects, types)
+        if agents:
+            for agent in agents:
+                types[agent] = 'agent'
+        action = Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects,
+                        types, agents=agents)
         self.actions.append(action)
 
     def parse_predicates(self, group):
@@ -124,7 +106,7 @@ class PddlParser:
         return self.predicates
 
     def parse_problem(self, problem_filename):
-        tokens = self.scan_tokens(problem_filename)
+        tokens = scan_tokens(problem_filename)
         if type(tokens) is list and tokens.pop(0) == 'define':
             self.problem_name = 'unknown'
             self.objects = []
@@ -184,8 +166,8 @@ class PddlParser:
                 pos.append(map(remove_dashes_inner, proposition))
 
     def print_summary(self):
-        self.scan_tokens(self.domain)
-        self.scan_tokens(self.problem)
+        scan_tokens(self.domain)
+        scan_tokens(self.problem)
         print('Domain name:' + self.domain_name)
         print('Predicates: ' + str(self.predicates))
         for act in self.actions:
@@ -197,6 +179,9 @@ class PddlParser:
         print('Positive goals: ' + str(self.positive_goals))
         print('Negative goals: ' + str(self.negative_goals))
         print('CTL goals: ' + str(self.extended_goal))
+        print('Types: ' + str(self.types))
+        print('Typed objects: ' + str(self.typed_objects))
+        print('Agents: ' + str(list(self.agents)))
         
     def parse(self):
         self.parse_domain(self.domain)
@@ -221,3 +206,14 @@ class PddlParser:
     @staticmethod
     def parse_initial_state(group):
         return InitState(group)
+
+    def parse_agents(self, group):
+        to_examine = group
+        agents = set()
+        while '-' in to_examine:
+            dash_index = to_examine.index('-')
+            agent_name = to_examine[dash_index-1]
+            if agent_name not in agents:
+                agents.add(agent_name)
+            to_examine = to_examine[dash_index+2:]
+        return agents

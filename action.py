@@ -4,7 +4,8 @@
 
 class Action:
 
-    def __init__(self, name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects, types, cost = 0):
+    def __init__(self, name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects, types, agents=None, cost = 0):
+        self.agents = agents
         self.name = name
         self.parameters = parameters
         self.positive_preconditions = positive_preconditions
@@ -22,6 +23,7 @@ class Action:
                '\n  add_effects: ' + str(self.add_effects) + \
                '\n  del_effects: ' + str(self.del_effects) + \
                '\n  types: ' + str(self.types) + \
+               '\n  agents: ' + str(list(self.agents)) + \
                '\n  cost: ' + str(self.cost) + '\n'
 
     def __eq__(self, other): 

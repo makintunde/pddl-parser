@@ -8,6 +8,7 @@ class TestPredicateParser(TestCase):
         group = [['on', '?x', '-', 'block', '?y', '-', 'block'],
                  ['ontable', '?x', '-', 'block'],
                  ['clear', '?x', '-', 'block']]
+
         types = {'object', 'block'}
         predicate_parser = PredicateParser(True, types)
 
@@ -26,6 +27,7 @@ class TestPredicateParser(TestCase):
                  [':private', '?agent', '-', 'agent',
                   ['holding', '?agent', '-', 'agent', '?x', '-', 'block'],
                   ['handempty', '?agent', '-', 'agent']]]
+
         types = {'object', 'block', 'agent'}
         predicate_parser = PredicateParser(True, types)
 
@@ -35,12 +37,9 @@ class TestPredicateParser(TestCase):
 
         actual_predicates_all = predicate_parser.get_predicates()
         expected_predicates_all = [['on', '?x', '?y'], ['ontable', '?x'], ['clear', '?x'], ['handempty', '?agent'],
-                               ['holding', '?agent', '?x']]
+                                   ['holding', '?agent', '?x']]
         self.assertEqual(expected_predicates_all, actual_predicates_all)
 
         actual_predicates_private = predicate_parser.get_private_predicates()
         expected_predicates_private = [['handempty', '?agent'], ['holding', '?agent', '?x']]
         self.assertItemsEqual(actual_predicates_private, expected_predicates_private)
-
-    def test_parse_untyped_predicates(self):
-        pass
