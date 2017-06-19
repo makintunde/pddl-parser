@@ -2,18 +2,40 @@ import collections
 import itertools
 
 
+class Agent(object):
+    def __init__(self, agent_name):
+        self.agent_name = agent_name
+        self.effects = {}
+        self.combinations = {}
+
+    def set_effects(self, effects):
+        self.effects = effects
+
+    def set_combinations(self, combinations):
+        self.combinations = combinations
+
+    def update_effect(self, key, value):
+        self.effects[key] = value
+
+    def update_combination(self, key, value):
+        self.combinations[key] = value
+
+
 class CodeGenerator:
     
     def __init__(self, parser):
         self.parser = parser
         self.code_generator = []
         self.indentation_depth = 4
-        self.action_performing_agents = ['Performer']
+        self.action_performing_agents = self.parser.agents if self.parser.agents else ['Performer']
         self.environment = 'Environment'
         self.variable_map = {}
         self.effects = {}
         self.combinations = {}
         self.goal_type = None
+        self.agent_map = {}
+        if self.parser.agents:
+            self.agent_map = {agent_name : Agent(agent_name) for agent_name in self.action_performing_agents}
 
     def add_line(self, depth, line):
         tabs = ' ' * (depth * self.indentation_depth)
@@ -28,10 +50,18 @@ class CodeGenerator:
         self.add_evolution(self.action_performing_agents)
         self.add_line(0, 'end Agent')
 
-    def add_action_performing_agent(self, agent_name):
+    def add_action_performing_agent(self, agent_name=None):
         self.add_line(0, 'Agent ' + agent_name)
-        self.add_vars(empty=True)
-        self.prepare_actions()
+
+        if self.parser.agents:
+            self.add_private_vars(agent_name)
+        else:
+            self.add_vars(empty=True)
+
+        if self.parser.agents:
+            self.prepare_actions_for_agent(agent_name)
+        else:
+            self.prepare_actions()
         self.add_actions()
         self.add_protocol()
         self.add_evolution(agent_name, empty=True)
@@ -42,12 +72,13 @@ class CodeGenerator:
             self.variable_map[s] = True
 
     def add_vars(self, obs=None, empty=None):
-        self.add_line(1, ('Vars' if obs is None else 'Obsvars') + ':')
+        extension = 'Vars' if obs is None else 'Obsvars'
+        self.add_line(1, extension + ':')
 
         # Check whether we should generate an empty list of variables.
         if empty is not None:
             self.add_line(2, 'state : { empty };')
-            self.add_line(1, 'end ' + ('Vars' if obs is None else 'Obsvars'))
+            self.add_line(1, 'end ' + extension)
             return
 
         if self.parser.typing:
@@ -56,7 +87,7 @@ class CodeGenerator:
         else:
             self.add_untyped_vars()
 
-        self.add_line(1, 'end ' + ('Vars' if obs is None else 'Obsvars'))
+        self.add_line(1, 'end ' + extension)
 
     def add_untyped_vars(self):
         for p in self.parser.predicates:
@@ -86,8 +117,45 @@ class CodeGenerator:
         for param in action.parameters:
             items.append([o for o, obj_type in self.parser.typed_objects.items() if action.types[param] == obj_type])
         combinations = itertools.product(*items)
-        param_map = {action: i for i, action in enumerate(action.parameters)}
+        param_map = {parameter: i for i, parameter in enumerate(action.parameters)}
         self.get_preconditions_and_effects(action, combinations, param_map)
+
+    def prepare_actions_for_agent(self, agent_name):
+        for action in self.parser.actions:
+            self.prepare_typed_action_for_agent(action, agent_name)
+
+    def prepare_typed_action_for_agent(self, action, agent_name):
+        items = []
+        for param in action.parameters:
+            if action.types[param] == 'agent':
+                items.append([agent_name])
+            else:
+                items.append([o for o, obj_type in self.parser.typed_objects.items() if
+                              action.types[param] == obj_type and action.types[param] != 'agent'])
+        combinations = itertools.product(*items)
+        param_map = {parameter: i for i, parameter in enumerate(action.parameters)}
+        self.get_preconditions_and_effects_for_agent(action, combinations, param_map, agent_name)
+
+    def get_preconditions_and_effects_for_agent(self, action, combinations, param_map, agent_name):
+        for i, comb in enumerate(combinations):
+            candidates = set()
+            negatives = set()
+            positives = set()
+
+            self.get_all_candidates(action, candidates, comb, negatives, param_map, positives)
+
+            if negatives == positives:
+                continue
+
+            next_combination = ' and '.join(candidate + '=true' for candidate in candidates)
+            with_effects = [p + '=true' for p in positives] + [n + '=false' for n in negatives]
+            next_effect = ' and '.join(with_effects)
+
+            action_name = '_'.join((action.name,) + comb)
+
+            # To be used for Evolution.
+            self.agent_map[agent_name].update_effect(action_name, next_effect)
+            self.agent_map[agent_name].update_combination(action_name, next_combination)
 
     def get_preconditions_and_effects(self, action, combinations, param_map):
         for i, comb in enumerate(combinations):
@@ -282,3 +350,35 @@ class CodeGenerator:
                 self.add_line(2, next_name + ' : boolean;')
                 if next_name not in self.variable_map:
                     self.variable_map[next_name] = False
+
+    def add_private_vars(self, agent_name):
+        extension = 'Vars'
+        self.add_line(1, extension + ':')
+
+        # Note: Typing must be used for multi-agent.
+        self.add_private_typed_vars(agent_name)
+
+        self.add_line(1, 'end ' + extension)
+
+    def add_private_typed_vars(self, agent_name):
+        private_predicates = self.parser.get_predicate_parser().get_private_typed_predicates()
+        for t in private_predicates:
+            items = []
+            name = t.get_name()
+            args = t.get_arguments()
+
+            # For the current predicate, look for objects in the domains with the same type as the type of each
+            # argument of each predicate.
+            for arg_type in args.values():
+                if arg_type == 'agent':
+                    items.append([agent_name])
+                else:
+                    items.append([o for o, obj_type in self.parser.typed_objects.items() if arg_type == obj_type and arg_type != 'agent'])
+            combinations = itertools.product(*items)
+            for c in combinations:
+                next_name = '_'.join((name,) + c)
+                self.add_line(2, next_name + ' : boolean;')
+                if next_name not in self.variable_map:
+                    self.variable_map[next_name] = False
+
+

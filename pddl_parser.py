@@ -26,6 +26,9 @@ class PddlParser:
         self.goal_type = None
         self.agents = None
         self.multi_agent = None
+        self.plan_as_single_agent = True
+        self.private_predicates = []
+        self.predicate_parser = None
 
     def parse_domain(self, domain_filename):
         tokens = scan_tokens(domain_filename)
@@ -75,7 +78,8 @@ class PddlParser:
                     raise Exception('Error with ' + name + ' parameters')
                 parameters, _ = self.parse_typed_objects(group.pop(0), types)
             elif t == ':precondition':
-                self.split_propositions(group.pop(0), positive_preconditions, negative_preconditions, name, ' preconditions')
+                self.split_propositions(group.pop(0), positive_preconditions, negative_preconditions, name,
+                                        ' preconditions')
             elif t == ':effect':
                 self.split_propositions(group.pop(0), add_effects, del_effects, name, ' effects')
             elif t == ':agent':
@@ -93,14 +97,15 @@ class PddlParser:
         self.actions.append(action)
 
     def parse_predicates(self, group):
-        predicate_parser = PredicateParser(self.typing, self.types)
+        self.predicate_parser = PredicateParser(self.typing, self.types)
         while group:
             to_parse = group.pop(0)
             if not type(to_parse) is list:
                 raise Exception(str(to_parse) + 'is not recognized as a valid predicate.')
-            predicate_parser.parse(to_parse)
-        self.predicates = predicate_parser.get_predicates()
-        self.typed_predicates = predicate_parser.get_typed_predicates()
+            self.predicate_parser.parse(to_parse)
+        self.predicates = self.predicate_parser.get_predicates()
+        self.typed_predicates = self.predicate_parser.get_typed_predicates()
+        self.private_predicates = self.predicate_parser.get_private_predicates()
 
     def get_predicates(self):
         return self.predicates
@@ -170,6 +175,8 @@ class PddlParser:
         scan_tokens(self.problem)
         print('Domain name:' + self.domain_name)
         print('Predicates: ' + str(self.predicates))
+        if self.private_predicates:
+            print('Private Predicates: ' + str(self.private_predicates))
         for act in self.actions:
             print(act)
         print('----------------------------')
@@ -200,7 +207,11 @@ class PddlParser:
             if next_group[0] == ':private' and next_group[-1] == 'agent':
                 if '-' in next_group:
                     # Extract the name of the agent, which is the last string before the '-'.
-                    agents.add(next_group[next_group.index('-')-1])
+                    index_of_dash = next_group.index('-')
+                    agent_name = next_group[index_of_dash-1]
+                    agent_type = next_group[index_of_dash+1]
+                    agents.add(agent_name)
+                    types[agent_name] = agent_type
         return types.keys(), agents
 
     @staticmethod
@@ -217,3 +228,6 @@ class PddlParser:
                 agents.add(agent_name)
             to_examine = to_examine[dash_index+2:]
         return agents
+
+    def get_predicate_parser(self):
+        return self.predicate_parser

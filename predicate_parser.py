@@ -6,6 +6,7 @@ from visibilities import Visibilities
 class PredicateParser(object):
 
     def __init__(self, typing, existing_types):
+        self.private_typed_predicates = []
         self.predicates = []
         self.typed_predicates = []
         self.private_predicates = []
@@ -50,9 +51,9 @@ class PredicateParser(object):
 
         self.predicates.append([predicate_name] + args)
         self.typed_predicates.append(Predicate(predicate_name, types))
-        if visibility is not None:
-            if visibility == Visibilities.PRIVATE:
-                self.private_predicates.append([predicate_name] + args)
+        if visibility is not None and visibility == Visibilities.PRIVATE:
+            self.private_predicates.append([predicate_name] + args)
+            self.private_typed_predicates.append(Predicate(predicate_name, types))
 
     def parse_untyped_predicates(self, group):
         without_dash = map(remove_dashes_inner, group)
@@ -66,3 +67,6 @@ class PredicateParser(object):
 
     def get_private_predicates(self):
         return self.private_predicates
+
+    def get_private_typed_predicates(self):
+        return self.private_typed_predicates
