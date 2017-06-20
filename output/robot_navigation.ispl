@@ -52,5 +52,5 @@ end Groups
 Fairness
 end Fairness
 Formulae
-    EF goal;
+    AF goal;
 end Formulae
