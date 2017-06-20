@@ -45,6 +45,9 @@ class CodeGenerator:
         self.add_line(0, 'Agent ' + self.environment)
         if self.parser.agents:
             self.add_evironment_vars_with_agents()
+            for agent_name in self.action_performing_agents:
+                self.prepare_actions_for_agent(agent_name)
+
         else:
             self.add_vars(obs=True)
         self.add_red_states()
@@ -59,7 +62,7 @@ class CodeGenerator:
              - remove all env-specific state from agent's evolution
              - move evolution from every action into env, removing agent specific state changes
             """
-            self.add_evolution('Environment', empty=True)
+            self.add_evolution_for_environment_with_agents()
         else:
             self.add_evolution(self.action_performing_agents)
         self.add_line(0, 'end Agent')
@@ -72,9 +75,7 @@ class CodeGenerator:
         else:
             self.add_vars(empty=True)
 
-        if self.parser.agents:
-            self.prepare_actions_for_agent(agent_name)
-        else:
+        if not self.parser.agents:
             self.prepare_actions()
 
         self.add_actions(agent_name=(agent_name if self.parser.agents else None))
@@ -287,10 +288,18 @@ class CodeGenerator:
 
     def add_evolution_for_agent(self, agent_name):
         self.add_line(1, 'Evolution:')
+        precondition_map = collections.defaultdict(set)
         for action, effect in self.agent_map[agent_name].effects.items():
             # Add effects for action-performing agent.
-            next_line = effect + ' if Action=' + action + ';'
+            splitted = effect.split(' and ')
+            new_effect = [s for s in splitted if 'Environment' not in s]
+            joined_effect = ' and '.join(new_effect)
+            precondition_map[joined_effect].add('Action=' + action)
+
+        for effect, actions in precondition_map.items():
+            next_line = effect + ' if ' + ' or '.join(actions) + ';'
             self.add_line(2, next_line)
+
         self.add_line(1, 'end Evolution')
 
     def add_evolution(self, agents, empty=None):
@@ -304,6 +313,29 @@ class CodeGenerator:
         else:
             # Empty evolution.
             self.add_line(2, 'state=empty if state=empty;')
+        self.add_line(1, 'end Evolution')
+
+    def add_evolution_for_environment_with_agents(self):
+        self.add_line(1, 'Evolution:')
+        precondition_map = collections.defaultdict(list)
+        for agent_name, agent in self.agent_map.items():
+            for action, effect in agent.effects.items():
+                splitted = effect.split(' and ')
+                new_effect = [s for s in splitted if 'Environment' in s]
+                without_environment = [s.split('.')[-1] for s in new_effect]
+                # Check for duplicates.
+                all_predicates = set([w.split('=')[0] for w in without_environment])
+                if len(all_predicates) != len(without_environment):
+                    # Duplicate assignment exists.
+                    continue
+                joined_effect = ' and '.join(without_environment)
+                precondition_map[joined_effect].append(agent_name + '.Action=' + action)
+
+        for effect, enabled_actions in precondition_map.items():
+            for action in enabled_actions:
+                next_line = effect + ' if ' + action + ';'
+                self.add_line(2, next_line)
+
         self.add_line(1, 'end Evolution')
 
     def add_evaluation(self, agent_name):
@@ -471,7 +503,3 @@ class CodeGenerator:
             self.add_line(2, precondition + enabled_actions)
 
         self.add_line(1, 'end Protocol')
-
-
-
-
