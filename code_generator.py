@@ -316,8 +316,24 @@ class CodeGenerator:
         self.add_line(1, 'end Evolution')
 
     def add_evolution_for_environment_with_agents(self):
+        use_single_action = True
         self.add_line(1, 'Evolution:')
         precondition_map = collections.defaultdict(list)
+        agent_to_effect_and_action_map = collections.defaultdict(list)
+
+        if use_single_action:
+            self.use_single_action(agent_to_effect_and_action_map, precondition_map)
+        else:
+            self.use_composition_of_actions(agent_to_effect_and_action_map)
+
+        for effect, enabled_actions in precondition_map.items():
+            for action in enabled_actions:
+                next_line = effect + ' if ' + action + ';'
+                self.add_line(2, next_line)
+
+        self.add_line(1, 'end Evolution')
+
+    def use_single_action(self, agent_to_effect_and_action_map, precondition_map):
         for agent_name, agent in self.agent_map.items():
             for action, effect in agent.effects.items():
                 splitted = effect.split(' and ')
@@ -329,14 +345,22 @@ class CodeGenerator:
                     # Duplicate assignment exists.
                     continue
                 joined_effect = ' and '.join(without_environment)
+
+                agent_to_effect_and_action_map[agent_name].append((joined_effect, agent_name + '.Action=' + action))
                 precondition_map[joined_effect].append(agent_name + '.Action=' + action)
 
-        for effect, enabled_actions in precondition_map.items():
-            for action in enabled_actions:
-                next_line = effect + ' if ' + action + ';'
-                self.add_line(2, next_line)
-
-        self.add_line(1, 'end Evolution')
+    def use_composition_of_actions(self, agent_to_effect_and_action_map):
+        zipped = (zip(*elems) for elems in itertools.product(*agent_to_effect_and_action_map.values()))
+        for effects, actions in zipped:
+            effect = ' and '.join(effects)
+            splitted = set(effect.split(' and '))
+            all_predicates = set([w.split('=')[0] for w in splitted])
+            if len(all_predicates) != len(splitted):
+                # Duplicate assignment exists.
+                continue
+            effect = ' and '.join(splitted)
+            next_line = effect + ' if ' + ' and '.join(actions) + ';'
+            self.add_line(2, next_line)
 
     def add_evaluation(self, agent_name):
         self.add_line(0, 'Evaluation')
