@@ -43,3 +43,8 @@ class TestPredicateParser(TestCase):
         actual_predicates_private = predicate_parser.get_private_predicates()
         expected_predicates_private = [['handempty', '?agent'], ['holding', '?agent', '?x']]
         self.assertItemsEqual(actual_predicates_private, expected_predicates_private)
+
+        actual_predicates_public = predicate_parser.get_public_predicates()
+        expected_predicates_public = [['on', '?x', '?y'], ['ontable', '?x'], ['clear', '?x']]
+        self.assertItemsEqual(actual_predicates_public, expected_predicates_public)
+

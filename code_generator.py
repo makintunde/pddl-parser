@@ -35,7 +35,7 @@ class CodeGenerator:
         self.goal_type = None
         self.agent_map = {}
         if self.parser.agents:
-            self.agent_map = {agent_name : Agent(agent_name) for agent_name in self.action_performing_agents}
+            self.agent_map = {agent_name: Agent(agent_name) for agent_name in self.action_performing_agents}
 
     def add_line(self, depth, line):
         tabs = ' ' * (depth * self.indentation_depth)
@@ -43,11 +43,25 @@ class CodeGenerator:
 
     def add_environment_agent(self):
         self.add_line(0, 'Agent ' + self.environment)
-        self.add_vars(obs=True)
+        if self.parser.agents:
+            self.add_evironment_vars_with_agents()
+        else:
+            self.add_vars(obs=True)
         self.add_red_states()
         self.add_actions(empty=True)
         self.add_protocol(empty=True)
-        self.add_evolution(self.action_performing_agents)
+
+        if self.parser.agents:
+            """
+            TODO: Move evolution specific to environment into environment, agent-specific state changes in agents,
+            since we have access to agent's actions.
+             - env has no actions, all state changes in terms of agent's actions
+             - remove all env-specific state from agent's evolution
+             - move evolution from every action into env, removing agent specific state changes
+            """
+            self.add_evolution('Environment', empty=True)
+        else:
+            self.add_evolution(self.action_performing_agents)
         self.add_line(0, 'end Agent')
 
     def add_action_performing_agent(self, agent_name=None):
@@ -62,14 +76,31 @@ class CodeGenerator:
             self.prepare_actions_for_agent(agent_name)
         else:
             self.prepare_actions()
-        self.add_actions()
-        self.add_protocol()
-        self.add_evolution(agent_name, empty=True)
+
+        self.add_actions(agent_name=(agent_name if self.parser.agents else None))
+
+        if self.parser.agents:
+            self.add_protocol_for_agent(agent_name)
+        else:
+            self.add_protocol()
+
+        if self.parser.agents:
+            self.add_evolution_for_agent(agent_name)
+        else:
+            self.add_evolution(agent_name, empty=True)
         self.add_line(0, 'end Agent')
 
     def initialise_variable_map(self):
         for s in self.parser.initial_state.serialise():
             self.variable_map[s] = True
+
+    def add_evironment_vars_with_agents(self):
+        extension = 'Obsvars'
+
+        self.add_line(1, extension + ':')
+        self.add_public_typed_vars('Environment')
+
+        self.add_line(1, 'end ' + extension)
 
     def add_vars(self, obs=None, empty=None):
         extension = 'Vars' if obs is None else 'Obsvars'
@@ -142,7 +173,7 @@ class CodeGenerator:
             negatives = set()
             positives = set()
 
-            self.get_all_candidates(action, candidates, comb, negatives, param_map, positives)
+            self.get_all_candidates(action, candidates, comb, negatives, param_map, positives, agent_name=agent_name)
 
             if negatives == positives:
                 continue
@@ -178,17 +209,22 @@ class CodeGenerator:
             self.effects[action_name] = next_effect
             self.combinations[action_name] = next_combination
 
-    def get_all_candidates(self, action, candidates, comb, negatives, param_map, positives):
+    def get_all_candidates(self, action, candidates, comb, negatives, param_map, positives, agent_name=None):
         all_candidates = set()
 
         for precondition in action.positive_preconditions:
             candidate = self.get_candidate(comb, param_map, precondition)
-            candidates.add('Environment.' + candidate)
+            if agent_name is not None and agent_name in candidate:
+                candidates.add(candidate)
+            else:
+                candidates.add('Environment.' + candidate)
 
         for positive in action.add_effects:
             candidate = self.get_candidate(comb, param_map, positive)
             if candidate in all_candidates:
                 return
+            if not (agent_name is not None and agent_name in candidate):
+                candidate = 'Environment.' + candidate
             positives.add(candidate)
             all_candidates.add(candidate)
 
@@ -196,6 +232,8 @@ class CodeGenerator:
             candidate = self.get_candidate(comb, param_map, negative)
             if candidate in all_candidates:
                 return
+            if not (agent_name is not None and agent_name in candidate):
+                candidate = 'Environment.' + candidate
             negatives.add(candidate)
             all_candidates.add(candidate)
 
@@ -213,9 +251,13 @@ class CodeGenerator:
         candidate = '_'.join([predicate] + arguments)
         return candidate
 
-    def add_actions(self, empty=None):
+    def add_actions(self, empty=None, agent_name=None):
         self.add_line(1, 'Actions = {')
-        next_line = ', '.join(self.effects.keys())
+        if agent_name:
+            next_line = ', '.join(self.agent_map[agent_name].effects.keys())
+        else:
+            next_line = ', '.join(self.effects.keys())
+
         self.add_line(2, next_line if empty is None else 'none')
         self.add_line(1, '};')
 
@@ -242,6 +284,14 @@ class CodeGenerator:
             self.add_line(2, precondition + enabled_actions)
 
         self.add_line(1, 'end Protocol')
+
+    def add_evolution_for_agent(self, agent_name):
+        self.add_line(1, 'Evolution:')
+        for action, effect in self.agent_map[agent_name].effects.items():
+            # Add effects for action-performing agent.
+            next_line = effect + ' if Action=' + action + ';'
+            self.add_line(2, next_line)
+        self.add_line(1, 'end Evolution')
 
     def add_evolution(self, agents, empty=None):
         self.add_line(1, 'Evolution:')
@@ -285,14 +335,19 @@ class CodeGenerator:
     def add_init_states(self, agent_name):
         self.add_line(0, 'InitStates')
         init_states = []
-        for variable, _ in self.variable_map.items():
+        for variable in self.variable_map.keys():
             if '#' in variable:
                 tokens = variable.split('#')
                 init_states.append('( ' + ' or '.join(agent_name + '.' + token + '=true' for token in tokens) + ' )')
             else:
                 truth_strings = ['false', 'true']
                 truth = truth_strings[self.variable_map[variable]]
-                init_states.append(agent_name + '.' + variable + '=' + truth)
+                for agent in self.agent_map.keys():
+                    if agent in variable:
+                        init_states.append(agent + '.' + variable + '=' + truth)
+                        break
+                else:
+                    init_states.append('Environment.' + variable + '=' + truth)
         self.add_line(1, ' and\n    '.join(init_states) + ';')
         self.add_line(0, 'end InitStates')
 
@@ -351,6 +406,15 @@ class CodeGenerator:
                 if next_name not in self.variable_map:
                     self.variable_map[next_name] = False
 
+    def add_public_vars(self, agent_name):
+        extension = 'Vars'
+        self.add_line(1, extension + ':')
+
+        # Note: Typing must be used for multi-agent.
+        self.add_public_typed_vars(agent_name)
+
+        self.add_line(1, 'end ' + extension)
+
     def add_private_vars(self, agent_name):
         extension = 'Vars'
         self.add_line(1, extension + ':')
@@ -362,6 +426,13 @@ class CodeGenerator:
 
     def add_private_typed_vars(self, agent_name):
         private_predicates = self.parser.get_predicate_parser().get_private_typed_predicates()
+        self.populate_variables(agent_name, private_predicates)
+
+    def add_public_typed_vars(self, agent_name):
+        public_predicates = self.parser.get_predicate_parser().get_public_typed_predicates()
+        self.populate_variables(agent_name, public_predicates)
+
+    def populate_variables(self, agent_name, private_predicates):
         for t in private_predicates:
             items = []
             name = t.get_name()
@@ -370,15 +441,37 @@ class CodeGenerator:
             # For the current predicate, look for objects in the domains with the same type as the type of each
             # argument of each predicate.
             for arg_type in args.values():
-                if arg_type == 'agent':
+                if arg_type == 'agent' and agent_name != 'Environment':
                     items.append([agent_name])
                 else:
-                    items.append([o for o, obj_type in self.parser.typed_objects.items() if arg_type == obj_type and arg_type != 'agent'])
+                    items.append([o for o, obj_type in self.parser.typed_objects.items()
+                                  if arg_type == obj_type and arg_type != 'agent'])
             combinations = itertools.product(*items)
             for c in combinations:
                 next_name = '_'.join((name,) + c)
                 self.add_line(2, next_name + ' : boolean;')
                 if next_name not in self.variable_map:
                     self.variable_map[next_name] = False
+
+    def add_protocol_for_agent(self, agent_name):
+        self.add_line(1, 'Protocol:')
+        actions_without_precondition = set()
+
+        next_actions = collections.defaultdict(set)
+
+        for action_name, next_combination in self.agent_map[agent_name].combinations.items():
+            next_action = action_name
+            if next_combination:
+                next_actions[next_combination].add(next_action)
+            else:
+                actions_without_precondition.add(next_action)
+
+        for precondition, actions in next_actions.items():
+            enabled_actions = ' : { ' + ', '.join(actions.union(actions_without_precondition)) + ' };'
+            self.add_line(2, precondition + enabled_actions)
+
+        self.add_line(1, 'end Protocol')
+
+
 
 

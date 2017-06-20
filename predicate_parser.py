@@ -10,6 +10,7 @@ class PredicateParser(object):
         self.predicates = []
         self.typed_predicates = []
         self.private_predicates = []
+        self.public_predicates = []
         self.typing = typing
         self.types = existing_types
         self.agents = []
@@ -70,3 +71,9 @@ class PredicateParser(object):
 
     def get_private_typed_predicates(self):
         return self.private_typed_predicates
+
+    def get_public_predicates(self):
+        return [p for p in self.predicates if p not in self.private_predicates]
+
+    def get_public_typed_predicates(self):
+        return [p for p in self.typed_predicates if p not in self.private_typed_predicates]
