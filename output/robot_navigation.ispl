@@ -31,10 +31,16 @@ Agent Performer
         move_robot_up, move_robot_down, move_robot_right, move_robot_left
     };
     Protocol:
-        ( Environment.robot_position=sw_room or Environment.robot_position=dep or Environment.robot_position=ne_room ) : { move_robot_up };
-        ( Environment.robot_position=store or Environment.robot_position=lab or Environment.robot_position=ne_room ) : { move_robot_down };
-        ( Environment.robot_position=sw_room or Environment.robot_position=store ) : { move_robot_right };
-        ( Environment.robot_position=dep or Environment.robot_position=ne_room ) : { move_robot_left };
+        ( Environment.robot_position=sw_room or 
+          Environment.robot_position=dep or 
+          Environment.robot_position=ne_room ) : { move_robot_up };
+        ( Environment.robot_position=store or 
+          Environment.robot_position=lab or 
+          Environment.robot_position=ne_room ) : { move_robot_down };
+        ( Environment.robot_position=sw_room or 
+          Environment.robot_position=store ) : { move_robot_right };
+        ( Environment.robot_position=dep or 
+          Environment.robot_position=ne_room ) : { move_robot_left };
     end Protocol
     Evolution:
         state=empty if state=empty;
