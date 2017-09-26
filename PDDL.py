@@ -1,36 +1,25 @@
 #!/usr/bin/env python
-# Four spaces as indentation [no tabs]
 
 from code_generator import CodeGenerator
 from pddl_parser import PddlParser
+import argparse
 
-# ==========================================
-# Main
-# ==========================================
 if __name__ == '__main__':
-    import sys
+    parser = argparse.ArgumentParser(description='Begin compilation.')
+    parser.add_argument('directory', help='Name of directory containing the problem and domain files')
+    parser.add_argument('domain', help='Name of PDDL file containing domain description')
+    parser.add_argument('problem', help='Name of PDDL file containing problem')
+    parser.add_argument('-d', action='store_true', help='Turn on debug mode')
+   
+    args = parser.parse_args()
 
-    flag = ''
-    flag_index = 1
-    problem_dir_index = 2
-    domain_index = 3
-    problem_index = 4
-
-    if len(sys.argv) <= 4:
-        # Shift arguments up by one for potential flags.
-        problem_dir_index -= 1
-        domain_index -= 1
-        problem_index -= 1
-    else:
-        flag = sys.argv[flag_index]
-
-    problem_dir = sys.argv[problem_dir_index]
-    domain = sys.argv[domain_index] + '.pddl'
-    problem = sys.argv[problem_index] + '.pddl'
-    parser = PddlParser(problem_dir + domain, problem_dir + problem)
+    domain = args.domain + '.pddl'
+    problem = args.problem + '.pddl'
+    directory = args.directory
+    parser = PddlParser(directory + domain, directory + problem)
     parser.parse()
 
-    if flag == '-d':
+    if args.d:
         parser.print_summary()
     else:
         code_generator = CodeGenerator(parser)
